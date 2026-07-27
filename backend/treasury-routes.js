@@ -480,6 +480,61 @@ router.put('/sync-config', async (req, res) => {
     }
 });
 
+// ─── TOKEN FLOW ANALYTICS ───────────────────────────────────────
+
+router.get('/token-flow', async (req, res) => {
+    try {
+        const supabase = req.supabase;
+
+        // Get all completed trades from fe_trades
+        const { data: trades, error } = await supabase
+            .from('fe_trades')
+            .select('trade_type, amount_from, amount_to, fee_amount, status, created_at')
+            .eq('status', 'completed')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        let nmxBought = 0, nmxSold = 0, tonIn = 0, tonOut = 0, totalFeesTon = 0, totalFeesNmx = 0;
+
+        // Buy trade: user sends TON, receives NMX. amount_from=TON, amount_to=NMX, fee in NMX
+        // Sell trade: user sends NMX, receives TON. amount_from=NMX, amount_to=TON, fee in TON
+        for (const t of (trades || [])) {
+            const from = parseFloat(t.amount_from || 0);
+            const to = parseFloat(t.amount_to || 0);
+            const fee = parseFloat(t.fee_amount || 0);
+
+            if (t.trade_type === 'buy') {
+                tonIn += from;
+                nmxBought += to;
+                totalFeesNmx += fee;
+            } else if (t.trade_type === 'sell') {
+                nmxSold += from;
+                tonOut += to;
+                totalFeesTon += fee;
+            }
+        }
+
+        res.json({
+            success: true,
+            summary: {
+                nmxBought: nmxBought.toFixed(2),
+                nmxSold: nmxSold.toFixed(2),
+                nmxNet: (nmxBought - nmxSold).toFixed(2),
+                tonIn: tonIn.toFixed(4),
+                tonOut: tonOut.toFixed(4),
+                totalFeesNmx: totalFeesNmx.toFixed(2),
+                totalFeesTon: totalFeesTon.toFixed(4),
+                totalTrades: trades?.length || 0
+            },
+            trades: trades || []
+        });
+    } catch (error) {
+        console.error('Token flow error:', error);
+        res.status(500).json({ error: 'Failed to load token flow data' });
+    }
+});
+
 // ─── HEALTH ─────────────────────────────────────────────────────
 
 router.get('/health', async (req, res) => {

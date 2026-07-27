@@ -428,6 +428,7 @@
         <div class="nav-tabs">
             <button class="nav-tab active" onclick="showTab('overview')">Wallets</button>
             <button class="nav-tab" onclick="showTab('transactions')">Transactions</button>
+            <button class="nav-tab" onclick="showTab('tokenflow')">Token Flow</button>
             <button class="nav-tab" onclick="showTab('refvalue')">Reference Value</button>
             <button class="nav-tab" onclick="showTab('health')">Health</button>
             <button class="nav-tab" onclick="showTab('settings')">Settings</button>
@@ -508,6 +509,38 @@
                         <tr><td colspan="7" class="loading">Loading...</td></tr>
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- Token Flow Tab -->
+        <div class="tab-content" id="tokenflow">
+            <div id="tokenflowSummary" class="stats-grid" style="margin-bottom:16px;">
+                <div class="stat-card"><div class="label">Total NMX Bought</div><div class="value" id="flowNmxBought">—</div><div class="sub" id="flowNmxBoughtUsd"></div></div>
+                <div class="stat-card"><div class="label">Total NMX Sold</div><div class="value" id="flowNmxSold">—</div><div class="sub" id="flowNmxSoldUsd"></div></div>
+                <div class="stat-card"><div class="label">Net Flow</div><div class="value" id="flowNmxNet">—</div><div class="sub">Bought - Sold</div></div>
+                <div class="stat-card"><div class="label">Total TON In</div><div class="value" id="flowTonIn">—</div><div class="sub">From buy orders</div></div>
+                <div class="stat-card"><div class="label">Total TON Out</div><div class="value" id="flowTonOut">—</div><div class="sub">To sell orders</div></div>
+                <div class="stat-card"><div class="label">Total Fees Collected</div><div class="value" id="flowFees">—</div><div class="sub" id="flowFeesAsset"></div></div>
+            </div>
+            <div class="card">
+                <h3>Trade Flow Breakdown</h3>
+                <div class="table-container" style="max-height:400px;overflow-y:auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>NMX</th>
+                                <th>TON</th>
+                                <th>Fee</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tokenflowTableBody">
+                            <tr><td colspan="6" class="loading">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -754,6 +787,7 @@
 
             if (tabName === 'overview') loadWallets();
             if (tabName === 'transactions') loadTransactions();
+            if (tabName === 'tokenflow') loadTokenFlow();
             if (tabName === 'refvalue') loadReferenceValue();
             if (tabName === 'health') loadHealth();
             if (tabName === 'settings') loadSettings();
@@ -1360,6 +1394,86 @@
                 }
             } catch (err) {
                 console.error('Stats load error:', err);
+            }
+        }
+
+        // ─── SYNC ───────────────────────────────────────────────
+
+        // ─── TOKEN FLOW ─────────────────────────────────────────
+
+        async function loadTokenFlow() {
+            const tbody = document.getElementById('tokenflowTableBody');
+            tbody.innerHTML = '<tr><td colspan="6" class="loading">Loading...</td></tr>';
+
+            const { data: session } = await supabaseClient.auth.getSession();
+            if (!session) return;
+
+            try {
+                const resp = await fetch('/api/treasury/token-flow', {
+                    headers: { 'Authorization': `Bearer ${session.session.access_token}` }
+                });
+                const json = await resp.json();
+                if (!json.success) throw new Error(json.error);
+
+                // Update summary cards
+                document.getElementById('flowNmxBought').textContent = Number(json.summary.nmxBought).toLocaleString();
+                document.getElementById('flowNmxSold').textContent = Number(json.summary.nmxSold).toLocaleString();
+                const net = Number(json.summary.nmxNet);
+                const netEl = document.getElementById('flowNmxNet');
+                netEl.textContent = (net >= 0 ? '+' : '') + net.toLocaleString();
+                netEl.style.color = net >= 0 ? 'var(--success)' : 'var(--danger)';
+                document.getElementById('flowTonIn').textContent = Number(json.summary.tonIn).toFixed(4);
+                document.getElementById('flowTonOut').textContent = Number(json.summary.tonOut).toFixed(4);
+                document.getElementById('flowFees').textContent =
+                    Number(json.summary.totalFeesNmx).toLocaleString() + ' NMX + ' +
+                    Number(json.summary.totalFeesTon).toFixed(4) + ' TON';
+                document.getElementById('flowFeesAsset').textContent = json.summary.totalTrades + ' completed trades';
+
+                // Load config for TON price to compute USD values
+                let tonPrice = 1.62;
+                try {
+                    const cfgResp = await fetch('/api/treasury/config', {
+                        headers: { 'Authorization': `Bearer ${session.session.access_token}` }
+                    });
+                    const cfg = await cfgResp.json();
+                    tonPrice = cfg.config?.ton_price || 1.62;
+                } catch(e) {}
+
+                document.getElementById('flowNmxBoughtUsd').textContent =
+                    '~$' + ((Number(json.summary.nmxBought) * tonPrice * 0.00005).toFixed(2));
+
+                // Populate table
+                const trades = json.trades || [];
+                if (trades.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-secondary);">No completed trades yet</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = trades.map(t => {
+                    const date = new Date(t.created_at);
+                    const timeStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+                    const isBuy = t.trade_type === 'buy';
+                    const typeBadge = isBuy
+                        ? '<span style="color:var(--success);">BUY</span>'
+                        : '<span style="color:var(--danger);">SELL</span>';
+                    const nmxAmt = (isBuy ? parseFloat(t.amount_to) : parseFloat(t.amount_from)).toFixed(2);
+                    const tonAmt = (isBuy ? parseFloat(t.amount_from) : parseFloat(t.amount_to)).toFixed(4);
+                    const feeAmt = parseFloat(t.fee_amount || 0);
+                    const feeStr = isBuy ? feeAmt.toFixed(2) + ' NMX' : feeAmt.toFixed(4) + ' TON';
+                    return `
+                        <tr>
+                            <td style="font-size:11px;color:var(--text-secondary);">${timeStr}</td>
+                            <td>${typeBadge}</td>
+                            <td style="font-family:monospace;">${nmxAmt}</td>
+                            <td style="font-family:monospace;">${tonAmt}</td>
+                            <td style="font-size:11px;color:var(--text-secondary);">${feeStr}</td>
+                            <td><span class="badge badge-success">${t.status}</span></td>
+                        </tr>`;
+                }).join('');
+
+            } catch (err) {
+                console.error('Token flow load error:', err);
+                tbody.innerHTML = '<tr><td colspan="6" style="color:var(--danger);text-align:center;">Failed to load data</td></tr>';
             }
         }
 
