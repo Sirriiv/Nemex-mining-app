@@ -1,0 +1,54 @@
+/* =============================================
+   NemexCoin Shared Theme
+   Replaces duplicated :root, @keyframes in 17 files
+   Version: 1.0
+   ============================================= */
+
+:root {
+    --dark-bg: #0a0a0f;
+    --darker-bg: #050508;
+    --gold: #d4af37;
+    --gold-light: #f4d03f;
+    --gold-dark: #b8941f;
+    --gold-glow: rgba(212, 175, 55, 0.4);
+    --text: #f5f5f5;
+    --muted: #aaa;
+    --bg-secondary: #1a1a1a;
+    --border-color: #333333;
+    --success: #00C851;
+    --error: #ff4444;
+    --glass-bg: rgba(255, 255, 255, 0.05);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --gold-shimmer: rgba(244, 208, 63, 0.1);
+}
+
+@keyframes gradientShift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+}
+
+@keyframes floatLogo {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-15px); }
+}
+
+@keyframes logoGlow {
+    0% { box-shadow: 0 0 20px rgba(212, 175, 55, 0.4); transform: scale(1); }
+    100% { box-shadow: 0 0 40px rgba(212, 175, 55, 0.6); transform: scale(1.05); }
+}
+
+@keyframes textBlink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+@keyframes progressLoad {
+    0% { width: 0%; }
+    50% { width: 70%; }
+    100% { width: 100%; }
+}

@@ -109,20 +109,6 @@ if (!TON_CONSOLE_API_KEY) {
 }
 
 // ============================================
-// 🎯 CORS MIDDLEWARE
-// ============================================
-router.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
-    }
-    next();
-});
-
-// ============================================
 // 🎯 SUPABASE SETUP
 // ============================================
 
@@ -483,6 +469,16 @@ console.log(`✅ BIP39 word list loaded: ${BIP39_WORDS.length} words`);
 
 const walletLookupCache = new Map();
 const WALLET_LOOKUP_TTL_MS = 15000;
+
+// Periodic cleanup of stale cache entries to prevent memory leaks
+setInterval(() => {
+    const now = Date.now();
+    for (const [key, entry] of walletLookupCache) {
+        if (now - entry.timestamp > WALLET_LOOKUP_TTL_MS * 2) {
+            walletLookupCache.delete(key);
+        }
+    }
+}, 60000);
 
 // ============================================
 // 🎯 SEND QUEUE + IDEMPOTENCY HELPERS
@@ -2001,18 +1997,14 @@ router.get('/test', (req, res) => {
     });
 });
 
-// Health endpoint
+// Health endpoint - lightweight, no external API calls
 router.get('/health', async (req, res) => {
     try {
-        const priceData = await fetchRealTONPrice();
-
         res.json({
             status: WalletContractV4 ? 'operational' : 'ERROR',
             database: dbStatus,
             send_enabled: true,
             auto_deploy_enabled: true,
-            price_fetching: priceData.source,
-            price: priceData.price,
             ton_console_api: TON_CONSOLE_API_KEY ? 'configured' : 'missing',
             ton_center_api: TONCENTER_API_KEY ? 'configured' : 'missing',
             timestamp: new Date().toISOString()
@@ -2023,8 +2015,6 @@ router.get('/health', async (req, res) => {
             database: dbStatus,
             send_enabled: true,
             auto_deploy_enabled: true,
-            price_fetching: 'fallback',
-            price: 1.62,
             ton_console_api: TON_CONSOLE_API_KEY ? 'configured' : 'missing',
             ton_center_api: TONCENTER_API_KEY ? 'configured' : 'missing',
             timestamp: new Date().toISOString()

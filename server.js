@@ -406,13 +406,15 @@ app.get('/api/health', (req, res) => {
 });
 
 // 🚦 Deploy info endpoint - helps verify deployed commit and env var presence
-const { execSync } = require('child_process');
+let _gitShortCommit = null;
 function getGitShortCommit() {
+    if (_gitShortCommit) return _gitShortCommit;
     try {
-        return execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+        _gitShortCommit = require('child_process').execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
     } catch (e) {
-        return 'unknown';
+        _gitShortCommit = 'unknown';
     }
+    return _gitShortCommit;
 }
 
 app.get('/api/deploy-info', async (req, res) => {
