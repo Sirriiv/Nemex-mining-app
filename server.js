@@ -66,6 +66,14 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // REMOVED: app.options('*', (req, res) => { ... }) - Let cors handle it
 
+// Cache-Control for API GET endpoints to reduce backend egress
+app.use('/api', (req, res, next) => {
+    if (req.method === 'GET') {
+        res.set('Cache-Control', 'public, max-age=30, s-maxage=60');
+    }
+    next();
+});
+
 // Serve static files with optimized caching
 app.use(express.static(path.join(__dirname, 'frontend'), {
     setHeaders: (res, filePath) => {

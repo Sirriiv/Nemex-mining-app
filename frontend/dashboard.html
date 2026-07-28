@@ -16,6 +16,7 @@
     
     <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/assets/css/theme.css?v=1">
     <!-- Environment Variables as Meta Tags -->
     <meta name="supabase-url" content="https://bjulifvbfogymoduxnzl.supabase.co">
     <meta name="supabase-key" content="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU">
@@ -2098,7 +2099,7 @@
                 // Fetch pending conversions from Supabase
                 const { data: conversions, error } = await window.supabase
                     .from('conversions')
-                    .select('*')
+                    .select('id, user_id, wallet_address, nmxp_amount, nmx_amount, status, created_at')
                     .eq('status', 'pending')
                     .order('created_at', { ascending: true });
 
@@ -2140,7 +2141,7 @@
                 
                 const { data: conversions, error } = await window.supabase
                     .from('conversions')
-                    .select('*')
+                    .select('id, user_id, wallet_address, nmxp_amount, nmx_amount, status, created_at')
                     .eq('status', 'rejected')
                     .order('created_at', { ascending: false });
 
@@ -2159,7 +2160,7 @@
                 
                 const { data: conversions, error } = await window.supabase
                     .from('conversions')
-                    .select('*')
+                    .select('id, user_id, wallet_address, nmxp_amount, nmx_amount, status, created_at')
                     .order('created_at', { ascending: false });
 
                 if (error) throw error;
@@ -2889,38 +2890,32 @@
         // FIXED: Enhanced dashboard initialization with Supabase Auth
         async function initializeDashboard() {
             try {
-                // FIRST: Check if Supabase is available
                 if (!window.supabase) {
                     throw new Error('Database connection failed. Please refresh the page.');
                 }
 
-                // Check authentication with Supabase Auth
                 const userSession = await checkAuth();
                 if (!userSession) return;
 
-                // Check maintenance mode
                 const isMaintenance = await checkMaintenanceStatus();
                 if (isMaintenance) {
                     console.log('🚧 Dashboard initialization paused - Maintenance mode active');
                     return;
                 }
 
-                // Initialize Telegram first
                 initializeTelegram();
 
-                // Load user data
-                const userData = await loadUserData();
+                // Parallelize: load profile, admin check, and notification count
+                const [userData] = await Promise.all([
+                    loadUserData(),
+                    checkAdminAccess(),
+                    loadNotificationCount()
+                ]);
+
                 if (!userData) {
                     throw new Error('Failed to load user data');
                 }
 
-                // Check if user is admin and show admin icons
-                await checkAdminAccess();
-
-                // NEW: Load notification count for badge
-                await loadNotificationCount();
-
-                // Start countdown timer
                 startCountdownTimer();
 
                 // Refresh balance when page becomes visible

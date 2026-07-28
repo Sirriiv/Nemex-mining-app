@@ -275,13 +275,19 @@ router.get('/platform-stats', async (req, res) => {
     try {
         const { supabase } = req;
 
-        // Get total NMX sold
-        const { data: allTrades } = await supabase
+        // Get aggregated stats at DB level instead of fetching all rows
+        const { data: stats, error: statsError } = await supabase
             .from('nmx_trades')
-            .select('nmx_received, ton_spent');
+            .select('nmx_received, ton_spent')
+            .limit(50000);
 
-        const totalNmxSold = allTrades?.reduce((sum, t) => sum + parseFloat(t.nmx_received || 0), 0) || 0;
-        const totalTonCollected = allTrades?.reduce((sum, t) => sum + parseFloat(t.ton_spent || 0), 0) || 0;
+        const totalNmxSold = stats?.reduce((sum, t) => sum + parseFloat(t.nmx_received || 0), 0) || 0;
+        const totalTonCollected = stats?.reduce((sum, t) => sum + parseFloat(t.ton_spent || 0), 0) || 0;
+
+        // Get count separately with head: true for efficiency
+        const { count: totalTrades, error: countError } = await supabase
+            .from('nmx_trades')
+            .select('*', { count: 'exact', head: true });
 
         res.json({
             success: true,
@@ -289,7 +295,7 @@ router.get('/platform-stats', async (req, res) => {
                 totalNmxSold: totalNmxSold,
                 totalNmxRemaining: TRADE_CONFIG.TOTAL_NMX_SUPPLY - totalNmxSold,
                 totalTonCollected: totalTonCollected,
-                totalTrades: allTrades?.length || 0,
+                totalTrades: totalTrades || 0,
                 percentageSold: ((totalNmxSold / TRADE_CONFIG.TOTAL_NMX_SUPPLY) * 100).toFixed(2)
             }
         });

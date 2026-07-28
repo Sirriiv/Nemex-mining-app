@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     
     <title>Referrals - NemexCoin</title>
-    <!-- ✅ Only use module version -->
+    <link rel="stylesheet" href="/assets/css/theme.css?v=1">
     <script type="module" src="/assets/js/supabase-client.js"></script>
     <style>
         /* Prevent white flash on scroll */
@@ -1885,12 +1885,21 @@
             // Load referral data
             loadReferralData();
 
-            // Add periodic sync to keep data fresh
-            setInterval(() => {
-                if (currentUser) {
-                    loadReferralData();
+            // Periodic sync with visibility awareness to reduce egress
+            let referralInterval = setInterval(() => {
+                if (currentUser) loadReferralData();
+            }, 60000);
+
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    clearInterval(referralInterval);
+                } else {
+                    if (currentUser) loadReferralData();
+                    referralInterval = setInterval(() => {
+                        if (currentUser) loadReferralData();
+                    }, 60000);
                 }
-            }, 30000); // Sync every 30 seconds
+            });
         });
     </script>
 </body>

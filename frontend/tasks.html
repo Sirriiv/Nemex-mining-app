@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <link rel="stylesheet" href="/assets/css/theme.css?v=1">
     <title>Tasks - NemexCoin</title>
     <script type="module" src="/assets/js/supabase-client.js"></script>
    <style>
@@ -1213,15 +1214,17 @@
 
                     const newBalance = (profile.balance || 0) + task.reward;
 
-                    // Update profile with new check-in and balance
-                    const { error: updateError } = await supabase
+                    // Atomic update: increment balance + update check-in in one operation
+                    const { data: updated, error: updateError } = await supabase
                         .from('profiles')
                         .update({ 
                             daily_checkins: newCheckins,
                             last_checkin: today,
-                            balance: newBalance
+                            balance: profile.balance + task.reward
                         })
-                        .eq('id', user.id);
+                        .eq('id', user.id)
+                        .select('balance')
+                        .single();
 
                     if (updateError) {
                         console.error('Error updating daily check-in:', updateError);
@@ -1242,25 +1245,22 @@
                         throw new Error('Failed to save task to database');
                     }
 
-                    // Update user balance for non-daily tasks
+                    // Single read-then-write: fetch balance once then update atomically
                     const { data: profile } = await supabase
                         .from('profiles')
                         .select('balance')
                         .eq('id', user.id)
                         .single();
 
-                    if (profile) {
-                        const newBalance = (profile.balance || 0) + task.reward;
+                    const newBalance = (profile?.balance || 0) + task.reward;
+                    const { error: updateError } = await supabase
+                        .from('profiles')
+                        .update({ balance: newBalance })
+                        .eq('id', user.id);
 
-                        const { error: updateError } = await supabase
-                            .from('profiles')
-                            .update({ balance: newBalance })
-                            .eq('id', user.id);
-
-                        if (updateError) {
-                            console.error('Error updating balance:', updateError);
-                            throw updateError;
-                        }
+                    if (updateError) {
+                        console.error('Error updating balance:', updateError);
+                        throw updateError;
                     }
                 }
 

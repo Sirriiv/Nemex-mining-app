@@ -6,6 +6,7 @@
     <title>Nemex Wallet - Secure TON Wallet</title>
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/assets/css/theme.css?v=1">
     <link rel="stylesheet" href="assets/css/wallet.css?v=2.0">
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -4358,7 +4359,7 @@ async function loadTransactionHistory() {
 
                         const { data: nmxTransactions, error } = await supabaseClient
                             .from('transactions')
-                            .select('*')
+                            .select('id, type, token, amount, status, created_at, hash')
                             .eq('user_id', userSession.id)
                             .eq('token', 'NMX')
                             .order('created_at', { ascending: false })
@@ -4385,7 +4386,7 @@ async function loadTransactionHistory() {
 
                         const { data: conversions, error } = await supabaseClient
                             .from('conversions')
-                            .select('*')
+                            .select('id, user_id, wallet_address, nmxp_amount, nmx_amount, status, gas_fee_paid, created_at')
                             .eq('user_id', userSession.id)
                             .order('created_at', { ascending: false })
                             .limit(50);
