@@ -6124,9 +6124,9 @@ async function executeProductionConversion() {
                 
                 const feePayment = await fetch('/api/wallet/send-gas-fee', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: (window.walletManager && window.walletManager.getAuthHeaders)
+                        ? window.walletManager.getAuthHeaders()
+                        : { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         userId: userSession.id,
                         fromAddress: userData.wallet_address,
@@ -7003,11 +7003,21 @@ async function executeTrade() {
             throw new Error('Wallet not initialized');
         }
 
+        let buyAuthHeader = {};
+        try {
+            if (window.supabase) {
+                const { data: { session: authSession } } = await window.supabase.auth.getSession();
+                if (authSession && authSession.access_token) {
+                    buyAuthHeader = { 'Authorization': 'Bearer ' + authSession.access_token };
+                }
+            }
+        } catch (authErr) {
+            console.warn('Could not attach auth header to buy request:', authErr.message);
+        }
+
         const response = await fetch('/api/trade/buy-nmx', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: Object.assign({ 'Content-Type': 'application/json' }, buyAuthHeader),
             body: JSON.stringify({
                 userId: userId,
                 tonAmount: tonAmount

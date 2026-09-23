@@ -5,6 +5,43 @@ const express = require('express');
 const router = express.Router();
 const settlement = require('./settlement-engine');
 
+// ============================================
+// 🎯 USER AUTH (Supabase JWT) - shared helper
+// Verifies the Authorization: Bearer <access_token> belongs to a real
+// Supabase user and overrides any client-supplied user_id with the
+// authenticated identity.
+// ============================================
+async function requireUser(req, res, next) {
+    try {
+        const authHeader = req.headers.authorization || '';
+        if (!authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({ success: false, error: 'Authentication required' });
+        }
+        const url = process.env.SUPABASE_URL;
+        const anonKey = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY;
+        if (!url || !anonKey) {
+            return res.status(503).json({ success: false, error: 'Server configuration error' });
+        }
+        const { createClient } = require('@supabase/supabase-js');
+        const authClient = createClient(url, anonKey, {
+            global: { headers: { Authorization: authHeader } }
+        });
+        const { data: userData, error } = await authClient.auth.getUser();
+        if (error || !userData || !userData.user) {
+            return res.status(401).json({ success: false, error: 'Invalid or expired token' });
+        }
+        req.authUserId = userData.user.id;
+        if (req.body && typeof req.body === 'object' && 'userId' in req.body) {
+            req.body.userId = req.authUserId;
+        }
+        return next();
+    } catch (err) {
+        console.error('requireUser error:', err.message);
+        return res.status(401).json({ success: false, error: 'Authentication failed' });
+    }
+}
+
+
 // ─── UTILITY ───────────────────────────────────────────────────
 
 async function getTreasuryState(supabase) {
@@ -319,7 +356,7 @@ router.get('/quote/sell', async (req, res) => {
 });
 
 // POST /api/finance/trade/validate — Validate a quote before executing
-router.post('/trade/validate', async (req, res) => {
+router.post('/trade/validate', requireUser, async (req, res) => {
     try {
         const { quote_id, user_id } = req.body;
         if (!quote_id || !user_id) {
@@ -340,7 +377,7 @@ router.post('/trade/validate', async (req, res) => {
 });
 
 // POST /api/finance/trade/create — Create and process a trade
-router.post('/trade/create', async (req, res) => {
+router.post('/trade/create', requireUser, async (req, res) => {
     try {
         const { quote_id, user_id } = req.body;
         if (!quote_id || !user_id) {
@@ -385,7 +422,7 @@ router.post('/trade/create', async (req, res) => {
 });
 
 // POST /api/finance/trade/settle — Execute blockchain settlement
-router.post('/trade/settle', async (req, res) => {
+router.post('/trade/settle', requireUser, async (req, res) => {
     try {
         const { trade_id, user_id, wallet_password } = req.body;
         if (!trade_id || !user_id || !wallet_password) {

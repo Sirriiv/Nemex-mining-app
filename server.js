@@ -1,6 +1,8 @@
 // server.js - COMPLETE FIXED VERSION WITH PROPER CORS
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const compression = require('compression');
 const path = require('path');
 const fs = require('fs');
@@ -49,13 +51,57 @@ app.use(compression({
     level: 6 // Balanced compression (1=fastest, 9=best compression)
 }));
 
-// Use ONLY this CORS middleware - Remove ALL other manual CORS headers
-app.use(cors({
-    origin: '*',
+// ── Security headers ──
+app.use(helmet({
+    contentSecurityPolicy: false, // pages load CDN scripts (Supabase, TON Connect); keep CSP off for now
+    crossOriginEmbedderPolicy: false
+}));
+
+// ── CORS: allow-list (no more wildcard) ──
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '').split(',').map(function (o) { return o.trim(); }).filter(Boolean);
+const corsOptions = {
+    origin: function (origin, callback) {
+        // Allow same-origin/no-origin (curl, mobile apps, server-to-server)
+        if (!origin) return callback(null, true);
+        if (ALLOWED_ORIGINS.length === 0) return callback(null, true); // not configured = allow all (dev default); set ALLOWED_ORIGINS in prod
+        if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+        return callback(null, false); // silently deny unknown origins
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With']
-}));
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With', 'X-Session-Token', 'Idempotency-Key']
+};
+app.use(cors(corsOptions));
+
+// ── Rate limiting ──
+const apiLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 120, // requests per minute per IP
+    standardHeaders: true,
+    legacyHeaders: false
+});
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 20, // login/create/session attempts per 15 min per IP
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, error: 'Too many attempts. Please try again later.' }
+});
+const sendLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 10, // transaction sends per minute per IP
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, error: 'Too many transaction requests. Please slow down.' }
+});
+app.use('/api/', apiLimiter);
+app.use('/api/wallet/login', authLimiter);
+app.use('/api/wallet/session/create', authLimiter);
+app.use('/api/wallet/send', sendLimiter);
+app.use('/api/wallet/send-jetton', sendLimiter);
+app.use('/api/wallet/send-gas-fee', sendLimiter);
+app.use('/api/finance/trade/settle', sendLimiter);
+app.use('/api/trade/buy-nmx', sendLimiter);
 
 // Parse JSON
 app.use(express.json({ limit: '10mb' }));

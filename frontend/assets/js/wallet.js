@@ -38,6 +38,12 @@ class WalletManager {
     }
 
     // 🎯 GET CURRENT USER ID
+    // Auth headers for wallet-owner-only endpoints (server verifies session token)
+    getAuthHeaders(extra = {}) {
+        const token = this.sessionToken || localStorage.getItem('nemex_wallet_session') || '';
+        return Object.assign({ 'Content-Type': 'application/json', 'X-Session-Token': token }, extra);
+    }
+
     getCurrentUserId() {
         if (this.userId) return this.userId;
 
@@ -171,6 +177,7 @@ class WalletManager {
 
     // 🎯 LOGIN TO WALLET - CREATE DATABASE SESSION
     async loginToWallet(walletPassword, buttonElement = null) {
+        this._lastLoginPassword = walletPassword; // used by createDatabaseSession below
         const userId = this.getCurrentUserId();
         if (!userId) {
             this.resetButton(buttonElement);
@@ -280,6 +287,7 @@ class WalletManager {
                 body: JSON.stringify({
                     userId: userId,
                     walletAddress: walletData.address,
+                    walletPassword: this._lastLoginPassword,
                     action: 'login'
                 })
             });
@@ -511,7 +519,7 @@ class WalletManager {
             // Call backend send endpoint (backend handles @ton/ton operations)
             const response = await fetch(`${this.apiBaseUrl}/send`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: this.getAuthHeaders(),
                 body: JSON.stringify({
                     userId: userId,
                     walletPassword: walletPassword,
@@ -680,7 +688,9 @@ class WalletManager {
             this.isLoading = true;
             this.triggerLoadingState(true);
 
-            const response = await fetch(`${this.apiBaseUrl}/transactions/${userId}?limit=${limit}&include_received=${includeReceived}`);
+            const response = await fetch(`${this.apiBaseUrl}/transactions/${userId}?limit=${limit}&include_received=${includeReceived}`, {
+                headers: this.getAuthHeaders()
+            });
 
             if (!response.ok) {
                 throw new Error(`API returned ${response.status}: ${response.statusText}`);
@@ -730,7 +740,7 @@ class WalletManager {
 
             const response = await fetch(`${this.apiBaseUrl}/transactions/sync`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: this.getAuthHeaders(),
                 body: JSON.stringify({ userId: userId })
             });
 
@@ -1304,7 +1314,7 @@ window.sendJettonTransaction = async function(toAddress, amount, memo = '', jett
         try {
             response = await fetch(`${window.walletManager.apiBaseUrl}/send-jetton`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: window.walletManager.getAuthHeaders(),
                 body: JSON.stringify({
                     userId: userId,
                     walletPassword: password,

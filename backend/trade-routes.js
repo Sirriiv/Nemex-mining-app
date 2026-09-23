@@ -2,6 +2,43 @@
 const express = require('express');
 const router = express.Router();
 
+// ============================================
+// 🎯 USER AUTH (Supabase JWT) - shared helper
+// Verifies the Authorization: Bearer <access_token> belongs to a real
+// Supabase user and overrides any client-supplied user_id with the
+// authenticated identity.
+// ============================================
+async function requireUser(req, res, next) {
+    try {
+        const authHeader = req.headers.authorization || '';
+        if (!authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({ success: false, error: 'Authentication required' });
+        }
+        const url = process.env.SUPABASE_URL;
+        const anonKey = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY;
+        if (!url || !anonKey) {
+            return res.status(503).json({ success: false, error: 'Server configuration error' });
+        }
+        const { createClient } = require('@supabase/supabase-js');
+        const authClient = createClient(url, anonKey, {
+            global: { headers: { Authorization: authHeader } }
+        });
+        const { data: userData, error } = await authClient.auth.getUser();
+        if (error || !userData || !userData.user) {
+            return res.status(401).json({ success: false, error: 'Invalid or expired token' });
+        }
+        req.authUserId = userData.user.id;
+        if (req.body && typeof req.body === 'object' && 'userId' in req.body) {
+            req.body.userId = req.authUserId;
+        }
+        return next();
+    } catch (err) {
+        console.error('requireUser error:', err.message);
+        return res.status(401).json({ success: false, error: 'Authentication failed' });
+    }
+}
+
+
 // Trading configuration
 const TRADE_CONFIG = {
     RATE: 2000,                    // 2000 NMX per 1 TON
@@ -116,7 +153,7 @@ router.get('/history', async (req, res) => {
 });
 
 // Execute NMX purchase
-router.post('/buy-nmx', async (req, res) => {
+router.post('/buy-nmx', requireUser, async (req, res) => {
     try {
         const { userId, tonAmount } = req.body;
         

@@ -4,19 +4,72 @@ const express = require('express');
 const router = express.Router();
 const treasurySync = require('./treasury-sync');
 
-// Admin authorization middleware
-const checkAdmin = (req, res, next) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'Authentication required' });
+// Admin authorization middleware (real verification, fail-closed):
+// accepts a Supabase JWT of a user with profiles.admin_level > 0, or the
+// static ADMIN_SECRET_TOKEN for trusted server-side callers.
+async function checkAdmin(req, res, next) {
+    try {
+        const authHeader = req.headers.authorization || '';
+        if (!authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({ error: 'Authentication required' });
+        }
+        const token = authHeader.slice(7);
+        if (!token || token === 'null' || token === 'undefined') {
+            return res.status(401).json({ error: 'Invalid authentication token' });
+        }
+
+        const staticToken = process.env.ADMIN_SECRET_TOKEN;
+        if (staticToken && token === staticToken) {
+            req.isAdmin = true;
+            return next();
+        }
+
+        const url = process.env.SUPABASE_URL;
+        const anonKey = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY;
+        if (!url || !anonKey) {
+            return res.status(503).json({ error: 'Server configuration error' });
+        }
+        const { createClient } = require('@supabase/supabase-js');
+        const authClient = createClient(url, anonKey, {
+            global: { headers: { Authorization: authHeader } }
+        });
+
+        const { data: userData, error: userErr } = await authClient.auth.getUser();
+        if (userErr || !userData || !userData.user) {
+            return res.status(403).json({ error: 'Admin access required' });
+        }
+
+        const serviceKey = process.env.SUPABASE_SERVICE_KEY;
+        let isAdmin = false;
+        if (serviceKey) {
+            const adminClient = createClient(url, serviceKey);
+            const { data: profile } = await adminClient
+                .from('profiles')
+                .select('admin_level')
+                .eq('id', userData.user.id)
+                .maybeSingle();
+            isAdmin = !!(profile && Number(profile.admin_level) > 0);
+        } else {
+            const { data: profile } = await authClient
+                .from('profiles')
+                .select('admin_level')
+                .eq('id', userData.user.id)
+                .maybeSingle();
+            isAdmin = !!(profile && Number(profile.admin_level) > 0);
+        }
+
+        if (!isAdmin) {
+            return res.status(403).json({ error: 'Admin access required' });
+        }
+
+        req.adminUserId = userData.user.id;
+        req.isAdmin = true;
+        return next();
+    } catch (err) {
+        console.error('treasury checkAdmin error:', err.message);
+        return res.status(403).json({ error: 'Admin access required' });
     }
-    const token = authHeader.replace('Bearer ', '');
-    if (!token || token === 'null' || token === 'undefined') {
-        return res.status(401).json({ error: 'Invalid authentication token' });
-    }
-    req.adminToken = token;
-    next();
-};
+}
 
 // ─── TREASURY OVERVIEW ─────────────────────────────────────────
 
@@ -116,7 +169,7 @@ router.get('/wallets', async (req, res) => {
     }
 });
 
-router.put('/wallets/:id', async (req, res) => {
+router.put('/wallets/:id', checkAdmin, async (req, res) => {
     try {
         const supabase = req.supabase;
         const { id } = req.params;
@@ -179,7 +232,7 @@ router.get('/transactions', async (req, res) => {
     }
 });
 
-router.post('/transactions', async (req, res) => {
+router.post('/transactions', checkAdmin, async (req, res) => {
     try {
         const supabase = req.supabase;
         const { asset, amount, tx_type, transaction_hash, wallet_address, description, status } = req.body;
@@ -240,7 +293,7 @@ router.post('/transactions', async (req, res) => {
     }
 });
 
-router.patch('/transactions/:id', async (req, res) => {
+router.patch('/transactions/:id', checkAdmin, async (req, res) => {
     try {
         const supabase = req.supabase;
         const { id } = req.params;
@@ -302,7 +355,7 @@ router.get('/config', async (req, res) => {
     }
 });
 
-router.put('/config', async (req, res) => {
+router.put('/config', checkAdmin, async (req, res) => {
     try {
         const supabase = req.supabase;
         const { buy_fee, sell_fee, quote_expiration_seconds, min_trade_amount, max_trade_amount, trading_enabled } = req.body;
@@ -385,7 +438,7 @@ router.get('/sync-logs', async (req, res) => {
     }
 });
 
-router.post('/sync', async (req, res) => {
+router.post('/sync', checkAdmin, async (req, res) => {
     try {
         const supabase = req.supabase;
         const { wallet_id } = req.body;
@@ -438,7 +491,7 @@ router.get('/sync-config', async (req, res) => {
     }
 });
 
-router.put('/sync-config', async (req, res) => {
+router.put('/sync-config', checkAdmin, async (req, res) => {
     try {
         const supabase = req.supabase;
         const { auto_sync_enabled, sync_interval_minutes } = req.body;

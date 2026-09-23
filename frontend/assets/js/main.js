@@ -142,7 +142,8 @@ document.addEventListener('DOMContentLoaded', function() {
 let supabaseClient = window.supabase;
 
 // ADMIN FUNCTIONALITY
-const ADMIN_TOKEN = 'your-admin-secret-token-123'; // Change this to a secure token
+// No hardcoded admin tokens: admin API calls use the signed-in user's
+// Supabase JWT; the backend verifies it and checks profiles.admin_level.
 
 // Initialize Admin Panel
 async function initializeAdminPanel() {
@@ -201,13 +202,21 @@ async function loadAdminData() {
     try {
         showAdminLoading();
 
-        // First, try to get data from your backend API
+        // First, try to get data from the same-origin backend API
         try {
-            const response = await fetch('https://nemex-backend.onrender.com/api/admin/users', {
-                headers: {
-                    'Authorization': `Bearer ${ADMIN_TOKEN}`,
-                    'Content-Type': 'application/json'
+            let authHeaders = { 'Content-Type': 'application/json' };
+            try {
+                if (window.supabase) {
+                    const { data: { session } } = await window.supabase.auth.getSession();
+                    if (session && session.access_token) {
+                        authHeaders['Authorization'] = `Bearer ${session.access_token}`;
+                    }
                 }
+            } catch (authErr) {
+                console.log('Could not attach auth header:', authErr.message);
+            }
+            const response = await fetch('/api/admin/users', {
+                headers: authHeaders
             });
 
             if (response.ok) {

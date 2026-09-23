@@ -1,21 +1,81 @@
 // admin-routes.js
 const express = require('express');
 const router = express.Router();
+const { createClient } = require('@supabase/supabase-js');
 
-// Admin middleware - Only callers with the real ADMIN_SECRET_TOKEN can access
-const checkAdmin = (req, res, next) => {
-    const adminToken = req.headers.authorization?.replace('Bearer ', '');
+// Admin authorization:
+//  - Accepts a Supabase JWT (Authorization: Bearer <access_token>) belonging to
+//    a user whose profiles.admin_level > 0, OR
+//  - Accepts the static ADMIN_SECRET_TOKEN for trusted server-side callers.
+// Fails closed when neither credential is present/valid.
+async function checkAdmin(req, res, next) {
+    try {
+        const authHeader = req.headers.authorization || '';
+        const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
 
-    // Fail closed: if ADMIN_SECRET_TOKEN is not configured, deny ALL access.
-    // Never fall back to a hardcoded token.
-    const validToken = process.env.ADMIN_SECRET_TOKEN;
+        if (!token) {
+            return res.status(401).json({ error: 'Authentication required' });
+        }
 
-    if (validToken && adminToken && adminToken === validToken) {
-        next();
-    } else {
-        res.status(403).json({ error: 'Admin access required' });
+        // Path 1: static admin token (trusted callers only)
+        const staticToken = process.env.ADMIN_SECRET_TOKEN;
+        if (staticToken && token === staticToken) {
+            req.isAdmin = true;
+            return next();
+        }
+
+        // Path 2: Supabase JWT -> verify -> check admin_level
+        const url = process.env.SUPABASE_URL;
+        if (!url) {
+            return res.status(503).json({ error: 'Server configuration error' });
+        }
+        const { createClient } = require('@supabase/supabase-js');
+        const supabaseAnon = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY;
+        if (!supabaseAnon) {
+            return res.status(503).json({ error: 'Server configuration error' });
+        }
+        const authClient = createClient(url, supabaseAnon, {
+            global: { headers: { Authorization: authHeader } }
+        });
+
+        const { data: userData, error: userErr } = await authClient.auth.getUser();
+        if (userErr || !userData || !userData.user) {
+            return res.status(403).json({ error: 'Admin access required' });
+        }
+
+        const serviceKey = process.env.SUPABASE_SERVICE_KEY;
+        let isAdmin = false;
+        if (serviceKey) {
+            const adminClient = createClient(url, serviceKey);
+            const { data: profile } = await adminClient
+                .from('profiles')
+                .select('admin_level')
+                .eq('id', userData.user.id)
+                .maybeSingle();
+            isAdmin = !!(profile && Number(profile.admin_level) > 0);
+        } else {
+            // Without the service key we cannot read other users' profiles reliably;
+            // fall back to the requester's own row (RLS permitting).
+            const { data: profile } = await authClient
+                .from('profiles')
+                .select('admin_level')
+                .eq('id', userData.user.id)
+                .maybeSingle();
+            isAdmin = !!(profile && Number(profile.admin_level) > 0);
+        }
+
+        if (!isAdmin) {
+            return res.status(403).json({ error: 'Admin access required' });
+        }
+
+        req.adminUserId = userData.user.id;
+        req.isAdmin = true;
+        return next();
+    } catch (err) {
+        console.error('checkAdmin error:', err.message);
+        return res.status(403).json({ error: 'Admin access required' });
     }
-};
+}
 
 // Get all users for admin panel
 router.get('/users', checkAdmin, async (req, res) => {
@@ -110,7 +170,7 @@ router.get('/users/:userId', checkAdmin, async (req, res) => {
 });
 
 // Orphan a referral (break the link but keep user in database)
-router.post('/orphan-referral', async (req, res) => {
+router.post('/orphan-referral', checkAdmin, async (req, res) => {
     try {
         const { referrerId, referredId } = req.body;
         const BONUS_AMOUNT = 30;

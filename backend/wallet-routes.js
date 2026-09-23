@@ -79,18 +79,6 @@ require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') }
 console.log('🚀 WALLET ROUTES v32.0 - DUAL API FIXED VERSION');
 
 // ============================================
-// 🎯 ENSURE CORS ON ALL RESPONSES
-// ============================================
-router.use((req, res, next) => {
-    // Ensure CORS headers on all responses (including errors)
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    next();
-});
-
-// ============================================
 // 🎯 API KEYS CONFIGURATION - FIXED!
 // ============================================
 const TONCENTER_API_KEY = process.env.TONCENTER_API_KEY || '';
@@ -191,6 +179,61 @@ setInterval(async () => {
         console.warn('⚠️ Supabase health check error:', e.message);
     }
 }, 4 * 60 * 1000); // Every 4 minutes
+
+// ============================================
+// 🎯 WALLET SESSION AUTH HELPERS
+// Server-side verification that a request is genuinely acting for the
+// wallet owner. Frontend sends the DB session token (created only after a
+// successful password login) via the X-Session-Token header.
+// ============================================
+async function verifyWalletSession(req, userId) {
+    const token = req.headers['x-session-token'] || req.query.sessionToken;
+    if (!token) {
+        return { ok: false, status: 401, error: 'Wallet session required. Please log in to your wallet.' };
+    }
+    if (!supabase || dbStatus !== 'connected') {
+        return { ok: false, status: 503, error: 'Database not available' };
+    }
+    const { data: sessionData, error } = await supabase
+        .from('wallet_sessions')
+        .select('session_token, user_id, expires_at')
+        .eq('session_token', String(token))
+        .gt('expires_at', new Date().toISOString())
+        .maybeSingle();
+    if (error || !sessionData) {
+        return { ok: false, status: 401, error: 'Invalid or expired wallet session' };
+    }
+    if (userId && String(sessionData.user_id) !== String(userId)) {
+        return { ok: false, status: 403, error: 'Session does not belong to this user' }; 
+    }
+    return { ok: true, session: sessionData };
+}
+
+// Express middleware: requires X-Session-Token; binds req to the session's user.
+// Any :userId param/body value is IGNORED for authorization - the session decides.
+async function requireWalletSession(req, res, next) {
+    const verdict = await verifyWalletSession(req, null);
+    if (!verdict.ok) {
+        return res.status(verdict.status).json({ success: false, error: verdict.error });
+    }
+    req.authUserId = String(verdict.session.user_id);
+    // Force-override any client-supplied userId with the authenticated owner so
+    // handlers can keep reading userId without trusting the request body/params.
+    if (req.body && typeof req.body === 'object') req.body.userId = req.authUserId;
+    if (req.params && typeof req.params === 'object' && 'userId' in req.params) {
+        req.params.userId = req.authUserId;
+    }
+    return next();
+}
+
+// Debug/info endpoints: only reachable in non-production from localhost.
+// In production they reveal server internals and must not be reachable.
+function devOnly(req, res, next) {
+    var isDev = (process.env.NODE_ENV || 'development') !== 'production';
+    var isLocal = req.ip === '127.0.0.1' || req.ip === '::1' || req.ip === '::ffff:127.0.0.1';
+    if (isDev && isLocal) return next();
+    return res.status(404).json({ success: false, error: 'Not found' });
+}
 
 // Helper: get Supabase client (admin or anon) based on isAdmin flag
 function getSupabaseClient(isAdmin = false) {
@@ -1984,7 +2027,7 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
 // ============================================
 
 // Test endpoint
-router.get('/test', (req, res) => {
+router.get('/test', devOnly, (req, res) => {
     res.json({
         success: true,
         message: 'Wallet API v32.0 - DUAL API FIXED',
@@ -2023,7 +2066,7 @@ router.get('/health', async (req, res) => {
 });
 
 // 🔍 Diagnostic endpoint to fetch on-chain seqno, public key, and balance
-router.get('/diagnose/:address', async (req, res) => {
+router.get('/diagnose/:address', devOnly, async (req, res) => {
     const address = req.params.address;
     console.log('🔎 Diagnosing address:', address);
 
@@ -2550,14 +2593,17 @@ router.post('/login', async (req, res) => {
 // ============================================
 
 // Create a new wallet session
+// SECURITY: requires the wallet password. Sessions may only be created after a
+// successful password verification - previously anyone could mint a session
+// for any userId (session-forging vulnerability).
 router.post('/session/create', async (req, res) => {
     try {
-        const { userId, walletAddress } = req.body;
+        const { userId, walletAddress, walletPassword } = req.body;
 
-        if (!userId || !walletAddress) {
+        if (!userId || !walletAddress || !walletPassword) {
             return res.status(400).json({
                 success: false,
-                error: 'User ID and wallet address required'
+                error: 'User ID, wallet address, and wallet password required'
             });
         }
 
@@ -2565,6 +2611,36 @@ router.post('/session/create', async (req, res) => {
             return res.status(503).json({
                 success: false,
                 error: 'Database not available'
+            });
+        }
+
+        // Verify the caller actually knows the wallet password before issuing a session
+        const { data: sessionWallet, error: sessionWalletErr } = await supabase
+            .from('user_wallets')
+            .select('id, address, password_hash')
+            .eq('user_id', userId)
+            .maybeSingle();
+
+        if (sessionWalletErr || !sessionWallet) {
+            return res.status(404).json({
+                success: false,
+                error: 'No wallet found for this user'
+            });
+        }
+
+        const passwordOk = await verifyWalletPassword(walletPassword, sessionWallet.password_hash);
+        if (!passwordOk) {
+            return res.status(401).json({
+                success: false,
+                error: 'Incorrect wallet password'
+            });
+        }
+
+        if (walletAddress && sessionWallet.address &&
+            String(walletAddress) !== String(sessionWallet.address)) {
+            return res.status(403).json({
+                success: false,
+                error: 'Wallet address does not match this account'
             });
         }
 
@@ -2692,7 +2768,7 @@ router.post('/session/check', async (req, res) => {
 });
 
 // Delete session (logout)
-router.post('/session/delete', async (req, res) => {
+router.post('/session/delete', requireWalletSession, async (req, res) => {
     try {
         const { sessionToken } = req.body;
 
@@ -3188,7 +3264,7 @@ router.get('/jetton-balance/:address', async (req, res) => {
 // ============================================
 // 🎯 DEBUG: WALLET ON-CHAIN STATE (helper for troubleshooting seqno/deploy issues)
 // ============================================
-router.get('/debug/wallet-state', async (req, res) => {
+router.get('/debug/wallet-state', devOnly, async (req, res) => {
     try {
         const { userId, address } = req.query;
 
@@ -3281,7 +3357,7 @@ router.get('/debug/wallet-state', async (req, res) => {
 // ============================================
 // 🎯 SEND GAS FEE - NO PASSWORD REQUIRED
 // ============================================
-router.post('/send-gas-fee', async (req, res) => {
+router.post('/send-gas-fee', requireWalletSession, async (req, res) => {
     console.log('⛽ GAS FEE COLLECTION REQUEST');
 
     try {
@@ -3599,7 +3675,7 @@ router.post('/send-gas-fee', async (req, res) => {
 // ============================================
 // 🎯 SEND ENDPOINT - WITH DUAL API SUPPORT
 // ============================================
-router.post('/send', async (req, res) => {
+router.post('/send', requireWalletSession, async (req, res) => {
     console.log('📨 SEND REQUEST RECEIVED - DUAL API SUPPORT');
 
     try {
@@ -3771,7 +3847,7 @@ router.post('/send', async (req, res) => {
 // ============================================
 // 🎯 SEND JETTON (NMX) TRANSACTION
 // ============================================
-router.post('/send-jetton', async (req, res) => {
+router.post('/send-jetton', requireWalletSession, async (req, res) => {
     console.log('🪙 SEND JETTON REQUEST RECEIVED');
     console.log('📍 Request timestamp:', new Date().toISOString());
     console.log('📍 Database status:', dbStatus);
@@ -4382,7 +4458,7 @@ async function getJettonWalletAddress(tonClient, jettonMasterAddress, ownerAddre
 // ============================================
 // 🎯 NEW: ENVIRONMENT CHECK ENDPOINT
 // ============================================
-router.get('/env-check', (req, res) => {
+router.get('/env-check', devOnly, (req, res) => {
     const envVars = {
         TONCENTER_API_KEY: process.env.TONCENTER_API_KEY ? '✓ Present' : '✗ Missing',
         TON_CONSOLE_API_KEY: process.env.TON_CONSOLE_API_KEY ? '✓ Present' : '✗ Missing',
@@ -4444,70 +4520,8 @@ router.get('/price/ton', async (req, res) => {
     }
 });
 
-// ============================================
-// 🎯 TEST TRANSACTION INSERT ENDPOINT
-// ============================================
-router.post('/test-transaction-insert', async (req, res) => {
-        try {
-                const { userId, walletAddress } = req.body;
-        if (!userId || !walletAddress) {
-            return res.status(400).json({
-                success: false,
-                error: 'userId and walletAddress required'
-            });
-        }
+// (test-transaction-insert endpoint removed for security: it allowed unauthenticated DB writes)
 
-        const testRecord = {
-            user_id: userId,
-            wallet_address: walletAddress,
-            transaction_hash: 'TEST_' + Date.now() + '_' + Math.random().toString(36).substring(7),
-            type: 'send',
-            token: 'TON',
-            amount: 0.001,
-            to_address: 'UQTest123456789',
-            from_address: walletAddress,
-            status: 'completed',
-            network_fee: 0.001,
-            description: 'Test transaction from debug endpoint',
-            created_at: new Date().toISOString()
-        };
-
-        console.log('🧪 Testing transaction insert with record:', testRecord);
-
-        const { data: inserted, error: insertErr } = await supabase
-            .from('transactions')
-            .insert(testRecord)
-            .select();
-
-        if (insertErr) {
-            console.error('❌ Test insert failed:', insertErr);
-            return res.json({
-                success: false,
-                error: insertErr.message,
-                details: insertErr,
-                record: testRecord
-            });
-        }
-
-        console.log('✅ Test insert successful:', inserted);
-
-        return res.json({
-            success: true,
-            message: 'Test transaction inserted successfully',
-            data: inserted
-        });
-
-    } catch (error) {
-        console.error('❌ Test insert exception:', error);
-        return res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
-});
-
-// ============================================
-// 🎯 TRANSACTION SYNC HELPERS AND ENDPOINTS
 // ============================================
 
 // Cache for heavy load optimization (30 second TTL)
@@ -5008,7 +5022,7 @@ async function reconcileChainTxsForUser(userId, chainTxs = []) {
 }
 
 // POST /transactions/sync - sync transactions for a single user
-router.post('/transactions/sync', async (req, res) => {
+router.post('/transactions/sync', requireWalletSession, async (req, res) => {
     try {
         const { userId } = req.body || {};
         if (!userId) {
@@ -5057,7 +5071,7 @@ router.post('/transactions/sync', async (req, res) => {
 });
 
 // POST /transactions/sync/address - sync transactions for an arbitrary address and attach to a userId (useful when user_wallets missing)
-router.post('/transactions/sync/address', async (req, res) => {
+router.post('/transactions/sync/address', devOnly, async (req, res) => {
     try {
         const { address, userId } = req.body || {};
         if (!address) return res.status(400).json({ success: false, error: 'address required' });
@@ -5084,7 +5098,7 @@ router.post('/transactions/sync/address', async (req, res) => {
 });
 
 // POST /transactions/raw/address - return normalized chain txs for an address (debug)
-router.post('/transactions/raw/address', async (req, res) => {
+router.post('/transactions/raw/address', devOnly, async (req, res) => {
     try {
         const { address, limit } = req.body || {};
         if (!address) return res.status(400).json({ success: false, error: 'address required' });
@@ -5098,7 +5112,7 @@ router.post('/transactions/raw/address', async (req, res) => {
 });
 
 // ADMIN DEBUG: Force reconciliation for a single chain tx (for testing)
-router.post('/transactions/reconcile/force', async (req, res) => {
+router.post('/transactions/reconcile/force', requireWalletSession, async (req, res) => {
     try {
         const { userId, tx } = req.body || {};
         if (!userId || !tx || !tx.transaction_hash) return res.status(400).json({ success: false, error: 'userId and tx.transaction_hash required' });
@@ -5237,7 +5251,7 @@ async function syncAllWallets(limitPerWallet = 100) {
 }
 
 // POST /transactions/sync/all - sync all wallets (can be called via webhook/cron)
-router.post('/transactions/sync/all', async (req, res) => {
+router.post('/transactions/sync/all', devOnly, async (req, res) => {
     try {
         const limitPerWallet = parseInt(req.body?.limitPerWallet || 100);
         const results = await syncAllWallets(limitPerWallet);
@@ -5254,7 +5268,7 @@ router.post('/transactions/sync/all', async (req, res) => {
 // ============================================
 // 🎯 FIXED: Transaction history endpoint - SHOWS ALL USER TRANSACTIONS
 // ============================================
-router.get('/transactions/:userId', async (req, res) => {
+router.get('/transactions/:userId', requireWalletSession, async (req, res) => {
     try {
         const { userId } = req.params;
         const { limit = 50, type, status, token } = req.query;
@@ -5409,7 +5423,7 @@ router.get('/transactions/:userId', async (req, res) => {
 // ============================================
 // 🎯 FIXED: Ensure wallet address is in transactions table
 // ============================================
-router.post('/transactions/fix-wallet-link', async (req, res) => {
+router.post('/transactions/fix-wallet-link', requireWalletSession, async (req, res) => {
     try {
         const { userId } = req.body;
 
