@@ -192,10 +192,13 @@ if (fs.existsSync(adminRoutesPath)) {
     try {
         console.log(`✅ Found admin routes at: ${adminRoutesPath}`);
         
-        // Initialize Supabase client for admin routes
+        // Initialize Supabase client for admin routes (credentials from environment only)
         const { createClient } = require('@supabase/supabase-js');
-        const supabaseUrl = process.env.SUPABASE_URL || 'https://bjulifvbfogymoduxnzl.supabase.co';
-        const supabaseKey = process.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
+        const supabaseUrl = process.env.SUPABASE_URL;
+        const supabaseKey = (process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY || '').trim();
+        if (!supabaseUrl || !supabaseKey) {
+            throw new Error('SUPABASE_URL and SUPABASE_SERVICE_KEY (or SUPABASE_ANON_KEY) must be set in environment');
+        }
         const supabase = createClient(supabaseUrl, supabaseKey);
         
         // Middleware to inject supabase into requests
@@ -231,10 +234,13 @@ if (fs.existsSync(tradeRoutesPath)) {
     try {
         console.log(`✅ Found trade routes at: ${tradeRoutesPath}`);
         
-        // Initialize Supabase client for trade routes
+        // Initialize Supabase client for trade routes (credentials from environment only)
         const { createClient } = require('@supabase/supabase-js');
-        const supabaseUrl = process.env.SUPABASE_URL || 'https://bjulifvbfogymoduxnzl.supabase.co';
-        const supabaseKey = process.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
+        const supabaseUrl = process.env.SUPABASE_URL;
+        const supabaseKey = (process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY || '').trim();
+        if (!supabaseUrl || !supabaseKey) {
+            throw new Error('SUPABASE_URL and SUPABASE_SERVICE_KEY (or SUPABASE_ANON_KEY) must be set in environment');
+        }
         const supabase = createClient(supabaseUrl, supabaseKey);
         
         // Middleware to inject supabase and user auth into trade requests
@@ -279,10 +285,13 @@ if (fs.existsSync(treasuryRoutesPath)) {
     try {
         console.log(`✅ Found treasury routes at: ${treasuryRoutesPath}`);
 
-        // Initialize Supabase client for treasury routes
+        // Initialize Supabase client for treasury routes (credentials from environment only)
         const { createClient } = require('@supabase/supabase-js');
-        const treasurySupabaseUrl = process.env.SUPABASE_URL || 'https://bjulifvbfogymoduxnzl.supabase.co';
-        const treasurySupabaseKey = (process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU').trim();
+        const treasurySupabaseUrl = process.env.SUPABASE_URL;
+        const treasurySupabaseKey = (process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY || '').trim();
+        if (!treasurySupabaseUrl || !treasurySupabaseKey) {
+            throw new Error('SUPABASE_URL and SUPABASE_SERVICE_KEY must be set in environment');
+        }
         const treasurySupabase = createClient(treasurySupabaseUrl, treasurySupabaseKey);
 
         // Middleware to inject supabase into treasury requests
@@ -333,8 +342,11 @@ if (fs.existsSync(financeRoutesPath)) {
         console.log(`✅ Found finance routes at: ${financeRoutesPath}`);
 
         const { createClient } = require('@supabase/supabase-js');
-        const financeSupabaseUrl = process.env.SUPABASE_URL || 'https://bjulifvbfogymoduxnzl.supabase.co';
-        const financeSupabaseKey = (process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU').trim();
+        const financeSupabaseUrl = process.env.SUPABASE_URL;
+        const financeSupabaseKey = (process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY || '').trim();
+        if (!financeSupabaseUrl || !financeSupabaseKey) {
+            throw new Error('SUPABASE_URL and SUPABASE_SERVICE_KEY must be set in environment');
+        }
         const financeSupabase = createClient(financeSupabaseUrl, financeSupabaseKey);
 
         app.use('/api/finance', (req, res, next) => {
@@ -490,6 +502,19 @@ app.post('/api/cors-test', (req, res) => {
         origin: req.headers.origin,
         timestamp: new Date().toISOString()
     });
+});
+
+// =============================================
+// 🎯 PUBLIC APP CONFIG - Injected from environment (no hardcoded secrets in source)
+// Frontend pages load this file to get the public Supabase URL + anon key.
+// =============================================
+app.get('/app-config.js', (req, res) => {
+    const supabaseUrl = process.env.SUPABASE_URL || '';
+    const supabaseAnonKey = (process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY || '').trim();
+
+    res.set('Content-Type', 'application/javascript; charset=utf-8');
+    res.set('Cache-Control', 'no-store');
+    res.send(`window.APP_CONFIG = { supabaseUrl: ${JSON.stringify(supabaseUrl)}, supabaseAnonKey: ${JSON.stringify(supabaseAnonKey)} };\n`);
 });
 
 // =============================================

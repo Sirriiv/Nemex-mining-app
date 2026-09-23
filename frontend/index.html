@@ -533,8 +533,11 @@
                 // Check for Supabase session
                 const { createClient } = window.supabase || {};
                 if (createClient) {
-                    const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
-                    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
+                    const supabaseUrl = window.APP_CONFIG?.supabaseUrl || '';
+                    const supabaseKey = window.APP_CONFIG?.supabaseAnonKey || '';
+                    if (!supabaseUrl || !supabaseKey) {
+                        console.error('❌ Missing app config (supabaseUrl/supabaseAnonKey)');
+                    }
                     const supabase = createClient(supabaseUrl, supabaseKey);
                     
                     const { data: { session } } = await supabase.auth.getSession();
@@ -589,6 +592,7 @@
     </script>
 
     <!-- 🆕 NEW: Load Supabase for session checking -->
+    <script src="/app-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 </body>
 </html>

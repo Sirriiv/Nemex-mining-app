@@ -11,15 +11,13 @@
     <!-- Preconnect to external domains for faster loading -->
     <link rel="preconnect" href="https://cdnjs.cloudflare.com">
     <link rel="preconnect" href="https://telegram.org">
-    <link rel="preconnect" href="https://bjulifvbfogymoduxnzl.supabase.co">
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
     
     <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/assets/css/theme.css?v=1">
     <!-- Environment Variables as Meta Tags -->
-    <meta name="supabase-url" content="https://bjulifvbfogymoduxnzl.supabase.co">
-    <meta name="supabase-key" content="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU">
+    <!-- Supabase credentials are injected by the server via /app-config.js -->
     <style>
         /* ===================================
            🎨 ENHANCED PROFESSIONAL THEME
@@ -1659,6 +1657,8 @@
     </div>
 
     <!-- Supabase CDN -->
+    <!-- App Config (env-injected, must load before Supabase) -->
+    <script src="/app-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
@@ -1666,9 +1666,9 @@
         // 🎯 FIXED: Initialize Supabase WITH GLOBAL SHARING USING ENVIRONMENT VARIABLES
         // =============================================
         
-        // Read from meta tags (environment variables)
-        const supabaseUrl = document.querySelector('meta[name="supabase-url"]')?.content || '';
-        const supabaseKey = document.querySelector('meta[name="supabase-key"]')?.content || '';
+        // Read from server-injected app config (loaded via /app-config.js)
+        const supabaseUrl = window.APP_CONFIG?.supabaseUrl || '';
+        const supabaseKey = window.APP_CONFIG?.supabaseAnonKey || '';
 
         // Validate credentials
         if (!supabaseUrl || !supabaseKey) {

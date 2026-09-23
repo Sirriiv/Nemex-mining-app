@@ -1,9 +1,13 @@
 // js/supabase.js - SIMPLIFIED VERSION
+// Credentials come from server-injected /app-config.js (no secrets in source).
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.1/+esm'
 
-// Your Supabase configuration
-const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
+if (!window.APP_CONFIG || !window.APP_CONFIG.supabaseUrl || !window.APP_CONFIG.supabaseAnonKey) {
+    throw new Error('APP_CONFIG missing. Load /app-config.js before this module.');
+}
+
+const supabaseUrl = window.APP_CONFIG.supabaseUrl;
+const supabaseKey = window.APP_CONFIG.supabaseAnonKey;
 
 // Create Supabase client
 const supabase = createClient(supabaseUrl, supabaseKey);

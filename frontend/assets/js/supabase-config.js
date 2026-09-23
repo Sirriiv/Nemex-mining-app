@@ -1,29 +1,32 @@
-// Supabase Configuration - SIMPLIFIED & FIXED
+// Supabase Configuration - loads credentials from server-injected /app-config.js
+// No secrets are hardcoded in source. The server injects SUPABASE_URL and the
+// public anon key from environment variables at /app-config.js.
 console.log('🎯 Supabase config loading...');
 
-const SUPABASE_URL = 'https://bjulifvbfogymoduxnzl.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
-
-// Wait for Supabase to load
 document.addEventListener('DOMContentLoaded', function() {
     console.log('📄 DOM loaded, initializing Supabase...');
-    
+
     if (typeof supabase === 'undefined') {
         console.error('❌ Supabase not loaded from CDN');
         return;
     }
-    
+
+    if (!window.APP_CONFIG || !window.APP_CONFIG.supabaseUrl || !window.APP_CONFIG.supabaseAnonKey) {
+        console.error('❌ APP_CONFIG missing or incomplete. Ensure /app-config.js is loaded before this script.');
+        return;
+    }
+
     try {
         // Create Supabase client
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        
+        const supabaseClient = supabase.createClient(window.APP_CONFIG.supabaseUrl, window.APP_CONFIG.supabaseAnonKey);
+
         // Make globally available
         window.supabase = supabaseClient;
         window.supabaseClient = supabaseClient;
-        
+
         console.log('✅ Supabase client initialized:', !!supabaseClient);
         console.log('✅ Auth available:', !!supabaseClient.auth);
-        
+
     } catch (error) {
         console.error('❌ Error creating Supabase client:', error);
     }

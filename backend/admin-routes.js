@@ -2,17 +2,15 @@
 const express = require('express');
 const router = express.Router();
 
-// Admin middleware - Only you can access
+// Admin middleware - Only callers with the real ADMIN_SECRET_TOKEN can access
 const checkAdmin = (req, res, next) => {
     const adminToken = req.headers.authorization?.replace('Bearer ', '');
-    
-    // Use a secure token that only you know
-    const validTokens = [
-        process.env.ADMIN_SECRET_TOKEN,
-        'your-temporary-admin-token' // Remove this after testing
-    ];
-    
-    if (validTokens.includes(adminToken)) {
+
+    // Fail closed: if ADMIN_SECRET_TOKEN is not configured, deny ALL access.
+    // Never fall back to a hardcoded token.
+    const validToken = process.env.ADMIN_SECRET_TOKEN;
+
+    if (validToken && adminToken && adminToken === validToken) {
         next();
     } else {
         res.status(403).json({ error: 'Admin access required' });

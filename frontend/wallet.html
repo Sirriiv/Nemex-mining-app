@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="/assets/css/theme.css?v=1">
     <link rel="stylesheet" href="assets/css/wallet.css?v=2.0">
 
+    <script src="/app-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <!-- ✅ TON SDK Libraries - Using UNPKG for better browser compatibility -->
@@ -4353,8 +4354,8 @@ async function loadTransactionHistory() {
                 try {
                     const userSession = await checkAuth();
                     if (userSession) {
-                        const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
-                        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
+                        const supabaseUrl = window.APP_CONFIG?.supabaseUrl || '';
+                        const supabaseKey = window.APP_CONFIG?.supabaseAnonKey || '';
                         const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
                         const { data: nmxTransactions, error } = await supabaseClient
@@ -4380,8 +4381,8 @@ async function loadTransactionHistory() {
                 try {
                     const userSession = await checkAuth();
                     if (userSession) {
-                        const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
-                        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
+                        const supabaseUrl = window.APP_CONFIG?.supabaseUrl || '';
+                        const supabaseKey = window.APP_CONFIG?.supabaseAnonKey || '';
                         const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
                         const { data: conversions, error } = await supabaseClient
@@ -6220,8 +6221,8 @@ async function executeProductionConversion() {
 
         // Initialize Supabase client
         console.log('🔧 Initializing Supabase...');
-        const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
+        const supabaseUrl = window.APP_CONFIG?.supabaseUrl || '';
+        const supabaseKey = window.APP_CONFIG?.supabaseAnonKey || '';
         const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
         // Get user's profile information for the conversion request
