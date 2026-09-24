@@ -12,3 +12,15 @@ services:
         value: 20.11.0
       - key: TREASURY_WALLET_ADDRESS
         sync: false
+      # CORS allowlist: set to your deployed frontend origins (comma-separated),
+      # e.g. "https://nemexcoin.app,https://www.nemexcoin.app"
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: ADMIN_SECRET_TOKEN
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false

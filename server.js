@@ -102,6 +102,7 @@ app.use('/api/wallet/send-jetton', sendLimiter);
 app.use('/api/wallet/send-gas-fee', sendLimiter);
 app.use('/api/finance/trade/settle', sendLimiter);
 app.use('/api/trade/buy-nmx', sendLimiter);
+app.use('/api/admin', authLimiter); // protect static admin token from brute force
 
 // Parse JSON
 app.use(express.json({ limit: '10mb' }));
@@ -637,16 +638,21 @@ app.use((err, req, res, next) => {
 // =============================================
 app.use((err, req, res, next) => {
     console.error('❌ Global error handler:', err.message);
-    
-    // Ensure CORS headers are present on error responses
-    res.header('Access-Control-Allow-Origin', '*');
+
+    // Mirror the cors() allowlist policy on error responses (never '*').
+    const reqOrigin = req.headers.origin;
+    if (reqOrigin && (ALLOWED_ORIGINS.length === 0 || ALLOWED_ORIGINS.includes(reqOrigin))) {
+        res.header('Access-Control-Allow-Origin', reqOrigin);
+        res.header('Vary', 'Origin');
+    }
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With');
-    
+    res.header('Access-Control-Allow-Headers', corsOptions.allowedHeaders.join(', '));
+
+    const isProd = (process.env.NODE_ENV || 'development') === 'production';
     res.status(err.status || 500).json({
         success: false,
         error: err.message || 'Internal server error',
-        details: err.toString()
+        ...(isProd ? {} : { details: err.toString() })
     });
 });
 

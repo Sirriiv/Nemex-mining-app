@@ -226,6 +226,14 @@ async function requireWalletSession(req, res, next) {
     return next();
 }
 
+// Sanitize a value used inside a PostgREST boolean filter (e.g. .or(...)).
+// PostgREST filter syntax uses , ( ) . : as separators; stripping them from
+// values prevents filter injection if a value ever contains attacker-influenced
+// characters. UUIDs, TON addresses and session tokens are unaffected.
+function pgFilterSafe(value) {
+    return String(value == null ? '' : value).replace(/[,().:]/g, '');
+}
+
 // Debug/info endpoints: only reachable in non-production from localhost.
 // In production they reveal server internals and must not be reachable.
 function devOnly(req, res, next) {
@@ -5270,8 +5278,8 @@ router.post('/transactions/sync/all', devOnly, async (req, res) => {
 // ============================================
 router.get('/transactions/:userId', requireWalletSession, async (req, res) => {
     try {
-        const { userId } = req.params;
-        const { limit = 50, type, status, token } = req.query;
+        let { userId } = req.params;
+        let { limit = 50, type, status, token } = req.query;
 
         console.log(`📜 Transaction history request for user: ${userId}, limit: ${limit}`);
 
@@ -5309,6 +5317,11 @@ router.get('/transactions/:userId', requireWalletSession, async (req, res) => {
             console.log('⚠️ Could not fetch wallet:', walletErr.message);
         }
 
+        // Defense-in-depth: strip PostgREST filter-control characters before any
+        // value is interpolated into a .or() boolean filter below; cap page size.
+        userId = pgFilterSafe(userId);
+        if (walletAddress) walletAddress = pgFilterSafe(walletAddress);
+        limit = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 200);
         // Build query to get ALL transactions for this user
         console.log(`🔍 Querying transactions table for user_id: ${userId} OR wallet_address: ${walletAddress}`);
         
@@ -5327,7 +5340,7 @@ router.get('/transactions/:userId', requireWalletSession, async (req, res) => {
             query = query.eq('status', status.toLowerCase());
         }
         if (token) {
-            query = query.ilike('token', `%${token}%`);
+            query = query.ilike('token', `%${pgFilterSafe(token)}%`);
         }
 
         const { data: transactions, error } = await query;
