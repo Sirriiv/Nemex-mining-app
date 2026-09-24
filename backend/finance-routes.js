@@ -624,9 +624,14 @@ router.get('/diagnostics', async (req, res) => {
             nodeEnv: process.env.NODE_ENV
         };
 
-        // 4. Test TON RPC endpoints
+        // 4. Test TON RPC endpoints (requires TREASURY_WALLET_ADDRESS)
         const { TonClient, Address } = require('@ton/ton');
-        const treasuryAddr = process.env.TREASURY_WALLET_ADDRESS || 'UQB_FCa2k5M5aybZ63llTR91dvUSoEDdlqOkbiORv6hNKOSC';
+        const treasuryAddr = (process.env.TREASURY_WALLET_ADDRESS || '').trim();
+        if (!treasuryAddr) {
+            results.errors.push({ step: 'tonRpc', error: 'TREASURY_WALLET_ADDRESS is not configured in environment' });
+            results.steps.tonRpc = [{ name: 'skipped', status: 'FAIL', error: 'TREASURY_WALLET_ADDRESS not set' }];
+            return res.json({ success: false, diagnostics: results });
+        }
         const rpcTests = [];
         const rpcs = [
             { name: 'TON Center', endpoint: 'https://toncenter.com/api/v2/jsonRPC', key: process.env.TONCENTER_API_KEY },

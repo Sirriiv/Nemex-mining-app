@@ -420,9 +420,9 @@
 
         <div class="card" style="text-align:center;margin-bottom:16px;">
             <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Treasury Wallet Address</div>
-            <div style="font-family:monospace;font-size:14px;color:var(--gold);word-break:break-all;" id="treasuryAddrDisplay">UQB_FCa2k5M5aybZ63llTR91dvUSoEDdlqOkbiORv6hNKOSC</div>
+            <div style="font-family:monospace;font-size:14px;color:var(--gold);word-break:break-all;" id="treasuryAddrDisplay">Loading…</div>
             <div style="margin-top:6px;">
-                <a id="treasuryExplorerLink" href="https://tonviewer.com/UQB_FCa2k5M5aybZ63llTR91dvUSoEDdlqOkbiORv6hNKOSC" target="_blank" rel="noopener" style="color:var(--gold);font-size:11px;text-decoration:underline;">View on TON Explorer →</a>
+                <a id="treasuryExplorerLink" href="#" target="_blank" rel="noopener" style="color:var(--gold);font-size:11px;text-decoration:underline;display:none;">View on TON Explorer →</a>
             </div>
         </div>
 
@@ -752,6 +752,30 @@
         let tradingEnabled = false;
         let autoSyncEnabled = true;
         let syncIntervalMinutes = 5;
+
+        // Treasury address comes from the server (TREASURY_WALLET_ADDRESS env var).
+        async function loadTreasuryAddress() {
+            const { data: session } = await supabaseClient.auth.getSession();
+            if (!session) return;
+            try {
+                const resp = await fetch('/api/treasury/sync-config', {
+                    headers: { 'Authorization': `Bearer ${session.session.access_token}` }
+                });
+                const json = await resp.json();
+                const addr = json.treasuryTonWallet;
+                const addrEl = document.getElementById('treasuryAddrDisplay');
+                const linkEl = document.getElementById('treasuryExplorerLink');
+                if (addr) {
+                    addrEl.textContent = addr;
+                    linkEl.href = `https://tonviewer.com/${addr}`;
+                    linkEl.style.display = 'inline';
+                } else {
+                    addrEl.textContent = 'Not configured — set TREASURY_WALLET_ADDRESS';
+                }
+            } catch (err) {
+                document.getElementById('treasuryAddrDisplay').textContent = 'Failed to load address';
+            }
+        }
 
         function showCustomAlert(message, type = 'success') {
             const alert = document.createElement('div');
@@ -1527,6 +1551,7 @@
         (async function init() {
             const isAdmin = await checkAdminAccess();
             if (!isAdmin) return;
+            await loadTreasuryAddress();
             await loadOverviewStats();
             await loadWallets();
         })();

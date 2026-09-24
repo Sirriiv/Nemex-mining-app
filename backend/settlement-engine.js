@@ -11,8 +11,17 @@ const { WalletContractV4, WalletContractV5R1, TonClient, Address, internal, toNa
 const { AssetsSDK, createApi } = require('@ton-community/assets-sdk');
 
 const ENCRYPTION_KEY = (process.env.ENCRYPTION_KEY || '').trim();
-const TREASURY_TON_WALLET = (process.env.TREASURY_WALLET_ADDRESS || '').trim() || 'UQB_FCa2k5M5aybZ63llTR91dvUSoEDdlqOkbiORv6hNKOSC';
-const NMX_JETTON_MASTER = '0:514ab5f3fbb8980e71591a1ac44765d02fe80182fd61af763c6f25ac548c9eec';
+// Treasury wallet comes from environment only (TREASURY_WALLET_ADDRESS) — no hardcoded fallback.
+const TREASURY_TON_WALLET = (process.env.TREASURY_WALLET_ADDRESS || '').trim();
+// NMX jetton master is public token configuration; override with NMX_JETTON_MASTER.
+const NMX_JETTON_MASTER = (process.env.NMX_JETTON_MASTER || '0:514ab5f3fbb8980e71591a1ac44765d02fe80182fd61af763c6f25ac548c9eec').trim();
+
+function requireTreasuryWallet() {
+    if (!TREASURY_TON_WALLET) {
+        throw new Error('TREASURY_WALLET_ADDRESS is not configured in environment');
+    }
+    return TREASURY_TON_WALLET;
+}
 
 // RPC endpoints in priority order
 const RPC_ENDPOINTS = [
@@ -97,6 +106,7 @@ function clearTreasurySignerCache() {
 // ─── TON CLIENT ────────────────────────────────────────────────
 
 async function connectTonClient() {
+    requireTreasuryWallet();
     for (const rpc of RPC_ENDPOINTS) {
         try {
             const cfg = { endpoint: rpc.endpoint, timeout: 15000 };
@@ -644,6 +654,7 @@ async function settleTrade(supabase, tradeId, userId, walletPassword) {
 }
 
 module.exports = {
+    requireTreasuryWallet,
     settleTrade,
     settleBuy,
     settleSell,

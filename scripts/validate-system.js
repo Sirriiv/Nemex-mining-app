@@ -189,7 +189,7 @@ async function run() {
     try {
         const se = require('../backend/settlement-engine');
         check('Module loads', !!se.settleTrade, 'all exports available');
-        check('Treasury address matches', se.TREASURY_TON_WALLET === 'UQB_FCa2k5M5aybZ63llTR91dvUSoEDdlqOkbiORv6hNKOSC', '');
+        check('Treasury address configured (env)', !!se.TREASURY_TON_WALLET, se.TREASURY_TON_WALLET || 'TREASURY_WALLET_ADDRESS not set');
         check('NMX Jetton address', se.NMX_JETTON_MASTER === '0:514ab5f3fbb8980e71591a1ac44765d02fe80182fd61af763c6f25ac548c9eec', '');
 
         // Test Treasury mnemonic encryption/decryption presence

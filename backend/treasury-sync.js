@@ -9,8 +9,10 @@ const TON_API_URL = process.env.TON_API_URL || 'https://tonapi.io/v2';
 const TONCENTER_API_KEY = process.env.TONCENTER_API_KEY || '';
 const TON_CONSOLE_API_KEY = process.env.TON_CONSOLE_API_KEY || '';
 
-const TREASURY_TON_WALLET = process.env.TREASURY_WALLET_ADDRESS || 'UQB_FCa2k5M5aybZ63llTR91dvUSoEDdlqOkbiORv6hNKOSC';
-const NMX_JETTON_MASTER = '0:514ab5f3fbb8980e71591a1ac44765d02fe80182fd61af763c6f25ac548c9eec';
+// Treasury wallet comes from environment only (TREASURY_WALLET_ADDRESS).
+// NMX jetton master is public token configuration; override with NMX_JETTON_MASTER.
+const TREASURY_TON_WALLET = (process.env.TREASURY_WALLET_ADDRESS || '').trim();
+const NMX_JETTON_MASTER = (process.env.NMX_JETTON_MASTER || '0:514ab5f3fbb8980e71591a1ac44765d02fe80182fd61af763c6f25ac548c9eec').trim();
 
 const DEFAULT_SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -167,10 +169,71 @@ function normalizeToEQ(address) {
     return address;
 }
 
+// ─── WALLET AUTO-SEED ─────────────────────────────────────────
+// The treasury_wallets table may be empty (fresh DB). Without rows for TON and
+// NMX, sync has nowhere to record balances and the Treasury page shows the
+// wallets as disconnected. Seed/repair them from the configured address.
+async function ensureTreasuryWallets(supabase) {
+    if (!TREASURY_TON_WALLET) return;
+
+    try {
+        const { data: wallets, error } = await supabase
+            .from('treasury_wallets')
+            .select('id, asset, wallet_address')
+            .in('asset', ['TON', 'NMX']);
+        if (error) throw error;
+
+        const byAsset = new Map((wallets || []).map(w => [w.asset, w]));
+        const now = new Date().toISOString();
+
+        for (const asset of ['TON', 'NMX']) {
+            const existing = byAsset.get(asset);
+            if (!existing) {
+                const { error: insertErr } = await supabase
+                    .from('treasury_wallets')
+                    .insert({
+                        asset,
+                        wallet_address: TREASURY_TON_WALLET,
+                        label: `Treasury ${asset} Wallet`,
+                        balance: 0,
+                        status: 'inactive',
+                        updated_at: now
+                    });
+                if (insertErr && insertErr.code !== '23505') {
+                    console.error(`[TreasurySync] Failed to seed ${asset} wallet:`, insertErr.message);
+                } else if (!insertErr) {
+                    console.log(`[TreasurySync] Seeded missing ${asset} treasury wallet record`);
+                }
+            } else if (!existing.wallet_address) {
+                // Repair rows that exist but lost their address
+                await supabase
+                    .from('treasury_wallets')
+                    .update({ wallet_address: TREASURY_TON_WALLET, updated_at: now })
+                    .eq('id', existing.id);
+            }
+        }
+    } catch (err) {
+        console.error('[TreasurySync] Wallet auto-seed failed:', err.message);
+    }
+}
+
 // ─── CORE SYNC FUNCTION ────────────────────────────────────────
 
 async function syncTreasury(supabase, treasuryAddress, jettonMaster) {
+    if (!treasuryAddress) {
+        console.error('[TreasurySync] TREASURY_WALLET_ADDRESS is not configured — sync aborted');
+        return {
+            ton: { success: false, balance: null, error: 'TREASURY_WALLET_ADDRESS not configured', source: null },
+            nmx: { success: false, balance: null, error: 'TREASURY_WALLET_ADDRESS not configured', source: null },
+            referenceValue: null,
+            syncedAt: new Date().toISOString()
+        };
+    }
+
     const syncStart = new Date();
+
+    // Make sure wallet records exist before syncing balances into them
+    await ensureTreasuryWallets(supabase);
     const results = {
         ton: { success: false, balance: null, error: null, source: null },
         nmx: { success: false, balance: null, error: null, source: null },
@@ -294,6 +357,11 @@ async function logSync(supabase, walletId, status, balanceSnapshot, errorMessage
 // ─── SYNC INTERVAL MANAGEMENT ──────────────────────────────────
 
 function startAutoSync(supabase, intervalMs) {
+    if (!TREASURY_TON_WALLET) {
+        console.error('[TreasurySync] Auto-sync not started: TREASURY_WALLET_ADDRESS is not set in environment');
+        return null;
+    }
+
     if (syncIntervalHandle) {
         clearInterval(syncIntervalHandle);
     }
@@ -332,6 +400,7 @@ function isAutoSyncRunning() {
 
 module.exports = {
     syncTreasury,
+    ensureTreasuryWallets,
     startAutoSync,
     stopAutoSync,
     isAutoSyncRunning,
