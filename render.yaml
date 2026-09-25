@@ -26,3 +26,12 @@ services:
         sync: false
       - key: TELEGRAM_BOT_TOKEN
         sync: false
+      # Server-side key that encrypts the recovery envelope (email password reset).
+      # Generate with: openssl rand -base64 48  (min 32 chars)
+      - key: APP_ENCRYPTION_KEY
+        sync: false
+      # Optional: security notification email on password reset (Resend)
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        sync: false

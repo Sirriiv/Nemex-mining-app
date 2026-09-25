@@ -94,12 +94,21 @@ const sendLimiter = rateLimit({
     legacyHeaders: false,
     message: { success: false, error: 'Too many transaction requests. Please slow down.' }
 });
+const recoveryLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10, // password recovery attempts per 15 min per IP
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, error: 'Too many recovery attempts. Please try again in 15 minutes.' }
+});
 app.use('/api/', apiLimiter);
 app.use('/api/wallet/login', authLimiter);
 app.use('/api/wallet/session/create', authLimiter);
 app.use('/api/wallet/send', sendLimiter);
 app.use('/api/wallet/send-jetton', sendLimiter);
 app.use('/api/wallet/send-gas-fee', sendLimiter);
+app.use('/api/wallet/recover-password-email', recoveryLimiter);
+app.use('/api/wallet/recover-password', recoveryLimiter);
 app.use('/api/finance/trade/settle', sendLimiter);
 app.use('/api/trade/buy-nmx', sendLimiter);
 app.use('/api/admin', authLimiter); // protect static admin token from brute force

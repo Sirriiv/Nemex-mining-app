@@ -178,7 +178,7 @@ setInterval(async () => {
     } catch (e) {
         console.warn('⚠️ Supabase health check error:', e.message);
     }
-}, 4 * 60 * 1000); // Every 4 minutes
+}, 10 * 60 * 1000); // Every 10 minutes (was 4) - reduces Supabase log ingestion
 
 // ============================================
 // 🎯 WALLET SESSION AUTH HELPERS
@@ -792,6 +792,105 @@ async function decryptMnemonic(encryptedData, password) {
     } catch (error) {
         console.error('❌ Decryption failed:', error.message);
         throw new Error('Failed to decrypt mnemonic. Password may be incorrect.');
+    }
+}
+
+// ============================================
+// 🛡️ PASSWORD RECOVERY ENVELOPE (server-key encrypted mnemonic copy)
+// ============================================
+// Rationale: the mnemonic is AES-256-GCM encrypted with the user's password.
+// If the password is forgotten there is nothing to decrypt from, which is why
+// recovery used to require the 24-word phrase. We additionally store a second
+// copy of the mnemonic encrypted with a SERVER-side key (APP_ENCRYPTION_KEY),
+// created lazily at login when the correct password is present. A verified
+// email OTP (Supabase Auth) then authorizes re-wrapping the mnemonic with a
+// new password. Existing wallets backfill automatically on next login.
+
+let serverRecoveryKey = null;
+function getServerRecoveryKey() {
+    if (serverRecoveryKey) return serverRecoveryKey;
+    const secret = (process.env.APP_ENCRYPTION_KEY || '').trim();
+    if (!secret || secret.length < 32) {
+        return null; // recovery disabled until a proper key is configured
+    }
+    serverRecoveryKey = crypto.createHash('sha256').update(secret).digest();
+    return serverRecoveryKey;
+}
+
+function isRecoveryEnvelopeEnabled() {
+    return getServerRecoveryKey() !== null;
+}
+
+async function encryptRecoveryEnvelope(mnemonicString) {
+    const key = getServerRecoveryKey();
+    if (!key) return null;
+
+    const iv = crypto.randomBytes(12);
+    const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+    let encrypted = cipher.update(mnemonicString, 'utf8', 'base64');
+    encrypted += cipher.final('base64');
+
+    return JSON.stringify({
+        v: 1,
+        algorithm: 'aes-256-gcm',
+        iv: iv.toString('base64'),
+        data: encrypted,
+        authTag: cipher.getAuthTag().toString('base64'),
+        created_at: new Date().toISOString()
+    });
+}
+
+async function decryptRecoveryEnvelope(envelopeJson) {
+    const key = getServerRecoveryKey();
+    if (!key) {
+        throw new Error('Recovery key not configured (APP_ENCRYPTION_KEY missing or too short)');
+    }
+
+    const envelope = typeof envelopeJson === 'string' ? JSON.parse(envelopeJson) : envelopeJson;
+    const decipher = crypto.createDecipheriv(
+        envelope.algorithm || 'aes-256-gcm',
+        key,
+        Buffer.from(envelope.iv, 'base64')
+    );
+    decipher.setAuthTag(Buffer.from(envelope.authTag, 'base64'));
+
+    let decrypted = decipher.update(envelope.data, 'base64', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
+}
+
+// Called on successful password verification (login / session create).
+// Best-effort and idempotent: silently skips when the key is not configured,
+// the envelope already exists, or any step fails - login must never break.
+async function ensureRecoveryEnvelope(userId, wallet, walletPassword) {
+    try {
+        if (!isRecoveryEnvelopeEnabled()) return;
+        if (!wallet || !wallet.encrypted_mnemonic) return;
+        if (wallet.password_recovery) return; // already backfilled
+
+        const mnemonic = await decryptMnemonic(wallet.encrypted_mnemonic, walletPassword);
+        const envelope = await encryptRecoveryEnvelope(mnemonic);
+        if (!envelope) return;
+
+        const { error } = await supabase
+            .from('user_wallets')
+            .update({ password_recovery: envelope, updated_at: new Date().toISOString() })
+            .eq('user_id', userId);
+
+        if (error) {
+            console.warn('⚠️ Recovery envelope backfill failed (non-fatal):', error.message);
+            return;
+        }
+
+        // Refresh cache so the in-memory wallet copy reflects the new column
+        if (walletLookupCache.has(`wallet:${String(userId).trim()}`)) {
+            wallet.password_recovery = envelope;
+            walletLookupCache.set(`wallet:${String(userId).trim()}`, { timestamp: Date.now(), value: wallet });
+        }
+
+        console.log(`🛡️ Recovery envelope stored for user ${userId}`);
+    } catch (error) {
+        console.warn('⚠️ Recovery envelope backfill skipped (non-fatal):', error.message);
     }
 }
 
@@ -2567,6 +2666,9 @@ router.post('/login', async (req, res) => {
 
         const balanceResult = await getRealBalance(wallet.address, userId);
 
+        // Best-effort backfill of the email-recovery envelope (idempotent)
+        await ensureRecoveryEnvelope(userId, wallet, walletPassword);
+
         return res.json({
             success: true,
             message: 'Wallet login successful',
@@ -3061,6 +3163,165 @@ router.post('/recover-password', async (req, res) => {
             success: false,
             error: 'Failed to recover wallet password: ' + error.message
         });
+    }
+});
+
+// ============================================
+// 📧 EMAIL-BASED PASSWORD RESET (Supabase Auth OTP)
+// ============================================
+// Flow: user enters email on the recovery page -> frontend calls
+// supabase.auth.signInWithOtp({ email, shouldCreateUser: false }) -> user
+// enters the 6-digit code -> supabase.auth.verifyOtp returns a session ->
+// frontend sends the Supabase access token + new password here -> we verify
+// the token server-side, decrypt the recovery envelope with the SERVER key,
+// and re-wrap the mnemonic with the new password. The 24-word phrase is not
+// needed. Requires APP_ENCRYPTION_KEY to be configured.
+
+// Send a security notification email when a reset succeeds (optional)
+async function sendPasswordResetNotification(email) {
+    const apiKey = (process.env.RESEND_API_KEY || '').trim();
+    if (!apiKey || !email) return;
+    try {
+        const from = (process.env.RESEND_FROM_EMAIL || 'Nemex Wallet <onboarding@resend.dev>').trim();
+        await axiosInstance.post('https://api.resend.com/emails', {
+            from,
+            to: email,
+            subject: 'Your Nemex wallet password was changed',
+            html: `<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto">
+                <h2 style="color:#d4af37">Wallet password changed</h2>
+                <p>The password for your Nemex wallet was just reset using email verification.</p>
+                <p style="color:#ff3b30"><strong>If this was not you,</strong> your email account may be compromised - secure it immediately and contact support.</p>
+            </div>`
+        }, {
+            headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+            timeout: 8000
+        });
+        console.log('📧 Reset notification email sent to', email);
+    } catch (mailError) {
+        console.warn('⚠️ Reset notification email failed (non-fatal):', mailError.message);
+    }
+}
+
+router.post('/recover-password-email', async (req, res) => {
+    try {
+        const { accessToken, email, newPassword } = req.body;
+
+        if (!accessToken || !newPassword) {
+            return res.status(400).json({ success: false, error: 'Missing required fields: accessToken, newPassword' });
+        }
+        if (typeof newPassword !== 'string' || newPassword.length < 6) {
+            return res.status(400).json({ success: false, error: 'New password must be at least 6 characters' });
+        }
+        if (!isRecoveryEnvelopeEnabled()) {
+            return res.status(503).json({ success: false, error: 'Email recovery is not enabled on this server. Please use your 24-word recovery phrase.' });
+        }
+        if (dbStatus !== 'connected') {
+            return res.status(503).json({ success: false, error: 'Database not available' });
+        }
+
+        // ── 1. Verify the Supabase session produced by the OTP flow ──
+        let verifiedUserId = null;
+        let verifiedEmail = null;
+        if (supabaseAdmin) {
+            const { data, error } = await supabaseAdmin.auth.getUser(accessToken);
+            if (error || !data || !data.user) {
+                console.warn('❌ Supabase token verification failed:', error ? error.message : 'no user');
+                return res.status(401).json({ success: false, error: 'Email verification is invalid or expired. Please request a new code.' });
+            }
+            verifiedUserId = data.user.id;
+            verifiedEmail = data.user.email || null;
+        } else {
+            // Fallback (no service key): decode the JWT payload and enforce expiry.
+            try {
+                const payload = JSON.parse(Buffer.from(accessToken.split('.')[1], 'base64').toString('utf8'));
+                if (!payload || !payload.sub) throw new Error('no sub claim');
+                if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) throw new Error('token expired');
+                verifiedUserId = payload.sub;
+                verifiedEmail = payload.email || null;
+            } catch (decodeError) {
+                console.warn('❌ Token decode fallback failed:', decodeError.message);
+                return res.status(401).json({ success: false, error: 'Email verification is invalid or expired. Please request a new code.' });
+            }
+        }
+
+        // Defence-in-depth: the email claimed on the call must match the verified one
+        if (email && verifiedEmail && String(email).toLowerCase().trim() !== String(verifiedEmail).toLowerCase().trim()) {
+            return res.status(401).json({ success: false, error: 'Email does not match the verified account.' });
+        }
+
+        // ── 2. Load wallet + recovery envelope ──
+        const { data: wallet, error: walletError } = await supabase
+            .from('user_wallets')
+            .select('id, user_id, address, encrypted_mnemonic, password_recovery')
+            .eq('user_id', verifiedUserId)
+            .maybeSingle();
+
+        if (walletError || !wallet) {
+            console.error('❌ Wallet lookup failed during email reset:', walletError ? walletError.message : 'not found');
+            return res.status(404).json({ success: false, error: 'No wallet found for this account' });
+        }
+        if (!wallet.password_recovery) {
+            return res.status(409).json({
+                success: false,
+                error: 'Email recovery is not yet activated for this wallet. Log in once with your current password (or use your 24-word recovery phrase) to activate it.'
+            });
+        }
+
+        // ── 3. Decrypt the mnemonic with the SERVER recovery key ──
+        let mnemonicString;
+        try {
+            mnemonicString = await decryptRecoveryEnvelope(wallet.password_recovery);
+        } catch (envError) {
+            console.error('❌ Recovery envelope decryption failed:', envError.message);
+            return res.status(500).json({ success: false, error: 'Recovery data could not be decrypted. Please use your 24-word recovery phrase.' });
+        }
+
+        // ── 4. Re-wrap the mnemonic with the NEW password (argon2id AES-GCM, same as create/login) ──
+        const newEncryptedData = await encryptMnemonic(mnemonicString, newPassword);
+        const newPasswordHash = await hashWalletPassword(newPassword);
+
+        const { error: updateError } = await supabase
+            .from('user_wallets')
+            .update({
+                encrypted_mnemonic: JSON.stringify(newEncryptedData),
+                mnemonic_salt: newEncryptedData && newEncryptedData.salt ? newEncryptedData.salt : null,
+                password_hash: newPasswordHash,
+                updated_at: new Date().toISOString()
+            })
+            .eq('user_id', verifiedUserId);
+
+        if (updateError) {
+            console.error('❌ Failed to persist reset password:', updateError);
+            return res.status(500).json({ success: false, error: 'Failed to update wallet password' });
+        }
+
+        // Invalidate cached wallet entry for this user
+        walletLookupCache.delete(`wallet:${String(verifiedUserId).trim()}`);
+
+        // ── 5. Kill all wallet sessions so the old-password session is dead ──
+        await supabase.from('wallet_sessions').delete().eq('user_id', verifiedUserId);
+
+        // Refresh the envelope (content unchanged - the mnemonic is the same)
+        const refreshedEnvelope = await encryptRecoveryEnvelope(mnemonicString);
+        if (refreshedEnvelope) {
+            await supabase
+                .from('user_wallets')
+                .update({ password_recovery: refreshedEnvelope })
+                .eq('user_id', verifiedUserId);
+        }
+
+        // Fire-and-forget notification
+        sendPasswordResetNotification(verifiedEmail);
+
+        console.log('✅ Wallet password reset via email OTP for user:', verifiedUserId);
+        return res.json({
+            success: true,
+            message: 'Wallet password reset successfully. Please login with your new password.'
+        });
+
+    } catch (error) {
+        console.error('❌ EMAIL PASSWORD RESET ERROR:', error);
+        return res.status(500).json({ success: false, error: 'Failed to reset wallet password: ' + error.message });
     }
 });
 
@@ -5532,7 +5793,7 @@ router.post('/transactions/fix-wallet-link', requireWalletSession, async (req, r
 });
 
 // Schedule periodic full sync of all wallets (if desired)
-const TRANSACTION_SYNC_INTERVAL_SECONDS = parseInt(process.env.TRANSACTION_SYNC_INTERVAL_SECONDS || '300'); // 5 min default, was 60
+const TRANSACTION_SYNC_INTERVAL_SECONDS = parseInt(process.env.TRANSACTION_SYNC_INTERVAL_SECONDS || '900'); // 15 min default (was 300) - reduces Supabase log ingestion & request volume
 
 // Per-wallet sync cooldown to avoid hammering the same wallet
 const walletSyncCooldowns = new Map();

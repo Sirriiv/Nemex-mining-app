@@ -14,6 +14,9 @@ All secrets are supplied via the environment (`.env` locally, host env in produc
 | `NMX_JETTON_MASTER` | treasury sync, settlement engine | NMX jetton master address; public token config. Optional — defaults to the deployed NMX master |
 | `TREASURY_MNEMONIC_ENCRYPTED` | settlement engine | AES-256-GCM encrypted mnemonic (see `scripts/encrypt-treasury-mnemonic.js`) |
 | `ENCRYPTION_KEY` | settlement engine | Decrypts `TREASURY_MNEMONIC_ENCRYPTED` (argon2id KDF) |
+| `APP_ENCRYPTION_KEY` | wallet-routes (email password reset) | Server-side key encrypting the recovery envelope. Generate with `openssl rand -base64 48` (min 32 chars). **Required for email recovery** — without it, users fall back to the 24-word phrase |
+| `RESEND_API_KEY` | wallet-routes (email password reset) | Optional: sends a "password changed" notification email via Resend after a reset |
+| `RESEND_FROM_EMAIL` | wallet-routes (email password reset) | Optional: custom "From" address (requires a verified Resend domain). Defaults to `onboarding@resend.dev` |
 | `PORT` | server.js | Defaults to 3000 |
 | `NODE_ENV` | server.js | `development` / `production` |
 
