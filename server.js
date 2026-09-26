@@ -101,12 +101,21 @@ const recoveryLimiter = rateLimit({
     legacyHeaders: false,
     message: { success: false, error: 'Too many recovery attempts. Please try again in 15 minutes.' }
 });
+const otpLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 5, // verification-code emails per 15 min per IP (each one costs a Brevo send)
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, error: 'Too many verification codes requested. Please try again in 15 minutes.' }
+});
 app.use('/api/', apiLimiter);
 app.use('/api/wallet/login', authLimiter);
 app.use('/api/wallet/session/create', authLimiter);
 app.use('/api/wallet/send', sendLimiter);
 app.use('/api/wallet/send-jetton', sendLimiter);
 app.use('/api/wallet/send-gas-fee', sendLimiter);
+app.use('/api/wallet/recover-password-otp', otpLimiter);
+app.use('/api/wallet/recover-password-verify', recoveryLimiter);
 app.use('/api/wallet/recover-password-email', recoveryLimiter);
 app.use('/api/wallet/recover-password', recoveryLimiter);
 app.use('/api/finance/trade/settle', sendLimiter);

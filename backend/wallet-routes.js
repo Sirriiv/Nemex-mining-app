@@ -3167,33 +3167,80 @@ router.post('/recover-password', async (req, res) => {
 });
 
 // ============================================
-// 📧 EMAIL-BASED PASSWORD RESET (Supabase Auth OTP)
+// 📧 EMAIL-BASED PASSWORD RESET (Brevo OTP, backend-issued codes)
 // ============================================
-// Flow: user enters email on the recovery page -> frontend calls
-// supabase.auth.signInWithOtp({ email, shouldCreateUser: false }) -> user
-// enters the 6-digit code -> supabase.auth.verifyOtp returns a session ->
-// frontend sends the Supabase access token + new password here -> we verify
-// the token server-side, decrypt the recovery envelope with the SERVER key,
-// and re-wrap the mnemonic with the new password. The 24-word phrase is not
-// needed. Requires APP_ENCRYPTION_KEY to be configured.
+// Flow: user enters their email -> POST /recover-password-otp generates a
+// 6-digit code with the CSPRNG, stores only its peppered SHA-256 hash in
+// `password_reset_codes` (10 min TTL) and emails it through the Brevo API
+// -> the user enters the code -> POST /recover-password-verify compares it
+// in constant time, burns the code and returns a 15 minute HMAC reset
+// token -> the frontend sends that token plus the new password to
+// /recover-password-email, where we decrypt the recovery envelope with the
+// SERVER key and re-wrap the mnemonic with the new password. The 24-word
+// phrase is not needed. Requires APP_ENCRYPTION_KEY, BREVO_API_KEY and
+// BREVO_FROM_EMAIL. (The legacy Supabase access-token path is still
+// accepted by /recover-password-email.)
+
+// Send an email through the Brevo v3 API (used for both the reset code and
+// the "password changed" notification).
+function getBrevoConfig() {
+    const apiKey = (process.env.BREVO_API_KEY || '').trim();
+    const fromEmail = (process.env.BREVO_FROM_EMAIL || '').trim();
+    if (!apiKey || !fromEmail) return null;
+    return {
+        apiKey,
+        fromEmail,
+        fromName: (process.env.BREVO_FROM_NAME || 'NemexCoin').trim()
+    };
+}
+
+async function sendBrevoEmail({ to, subject, html, text }) {
+    const brevo = getBrevoConfig();
+    if (!brevo) throw new Error('Email service is not configured on this server.');
+    const response = await axiosInstance.post(
+        'https://api.brevo.com/v3/smtp/email',
+        {
+            sender: { name: brevo.fromName, email: brevo.fromEmail },
+            to: [{ email: to }],
+            subject: subject,
+            htmlContent: html,
+            textContent: text || undefined
+        },
+        {
+            headers: { 'api-key': brevo.apiKey, 'Content-Type': 'application/json' },
+            timeout: 10000
+        }
+    );
+    return response.data;
+}
 
 // Send a security notification email when a reset succeeds (optional)
 async function sendPasswordResetNotification(email) {
-    const apiKey = (process.env.RESEND_API_KEY || '').trim();
-    if (!apiKey || !email) return;
+    if (!email) return;
+    const brevo = getBrevoConfig();
+    const subject = 'Your Nemex wallet password was changed';
+    const html = `<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto">
+                <h2 style="color:#d4af37">Wallet password changed</h2>
+                <p>The password for your Nemex wallet was just reset using email verification.</p>
+                <p style="color:#ff3b30"><strong>If this was not you,</strong> your email account may be compromised - secure it immediately and contact support.</p>
+            </div>`;
     try {
+        if (brevo) {
+            await sendBrevoEmail({ to: email, subject: subject, html: html });
+            console.log('📧 Reset notification email sent to', email);
+            return;
+        }
+        // Legacy fallback for servers that still have Resend configured
+        const resendKey = (process.env.RESEND_API_KEY || '').trim();
+        if (!resendKey) return;
         const from = (process.env.RESEND_FROM_EMAIL || 'Nemex Wallet <onboarding@resend.dev>').trim();
         await axiosInstance.post('https://api.resend.com/emails', {
             from,
             to: email,
-            subject: 'Your Nemex wallet password was changed',
-            html: `<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto">
-                <h2 style="color:#d4af37">Wallet password changed</h2>
-                <p>The password for your Nemex wallet was just reset using email verification.</p>
-                <p style="color:#ff3b30"><strong>If this was not you,</strong> your email account may be compromised - secure it immediately and contact support.</p>
-            </div>`
+            subject: subject,
+            html: html
         }, {
-            headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+            headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
             timeout: 8000
         });
         console.log('📧 Reset notification email sent to', email);
@@ -3202,12 +3249,270 @@ async function sendPasswordResetNotification(email) {
     }
 }
 
+// ─────────────────────────────────────────────
+// 🔑 EMAIL OTP (Brevo) - backend-generated codes
+// ─────────────────────────────────────────────
+// Supabase Auth is NOT part of the reset step. The server generates a 6-digit
+// code with the CSPRNG, stores only its peppered SHA-256 hash in
+// `password_reset_codes` with a short expiry, and emails it through the Brevo
+// API. A correct code is exchanged for a short-lived HMAC reset token, which
+// is what /recover-password-email accepts as proof of email ownership.
+//
+// Requires: APP_ENCRYPTION_KEY (hash pepper + token signing + envelope key),
+//           BREVO_API_KEY + BREVO_FROM_EMAIL (delivery).
+
+const OTP_TTL_MINUTES = 10;
+const OTP_MAX_ATTEMPTS = 5;
+const RESET_TOKEN_TTL_MINUTES = 15;
+
+function normalizeRecoveryEmail(email) {
+    return String(email || '').trim().toLowerCase();
+}
+
+function generateOtpCode() {
+    // crypto.randomInt is CSPRNG-backed and free of modulo bias
+    return String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+}
+
+function hashOtpCode(email, code) {
+    const pepper = (process.env.APP_ENCRYPTION_KEY || '').trim();
+    return crypto.createHash('sha256')
+        .update(`${normalizeRecoveryEmail(email)}:${code}:${pepper}`)
+        .digest('hex');
+}
+
+// Short-lived proof that the email address was verified. Signed with the same
+// server key that protects the recovery envelope, so it cannot be forged.
+function signPasswordResetToken(userId, email) {
+    const key = getServerRecoveryKey();
+    if (!key) return null;
+    const payload = {
+        sub: String(userId),
+        email: normalizeRecoveryEmail(email),
+        exp: Math.floor(Date.now() / 1000) + (RESET_TOKEN_TTL_MINUTES * 60)
+    };
+    const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
+    const signature = crypto.createHmac('sha256', key).update(body).digest('base64url');
+    return `${body}.${signature}`;
+}
+
+function verifyPasswordResetToken(token) {
+    try {
+        const key = getServerRecoveryKey();
+        if (!key) return null;
+        const parts = String(token || '').split('.');
+        if (parts.length !== 2) return null;
+        const body = parts[0];
+        const given = Buffer.from(parts[1]);
+        const expected = Buffer.from(crypto.createHmac('sha256', key).update(body).digest('base64url'));
+        if (given.length !== expected.length || !crypto.timingSafeEqual(given, expected)) return null;
+        const payload = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
+        if (!payload || !payload.sub) return null;
+        if (!payload.exp || payload.exp < Math.floor(Date.now() / 1000)) return null;
+        return payload;
+    } catch (error) {
+        return null;
+    }
+}
+
+function buildOtpEmailHtml(code) {
+    return `<!DOCTYPE html>
+<html>
+<body style="margin:0;padding:0;background:#0a0e14;font-family:Arial,Helvetica,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0e14;padding:32px 12px;">
+    <tr><td align="center">
+      <table width="480" cellpadding="0" cellspacing="0" style="background:#111722;border:1px solid #2a3344;border-radius:12px;padding:36px 32px;">
+        <tr><td align="center" style="padding-bottom:8px;">
+          <span style="font-size:22px;font-weight:bold;color:#d4af37;">&#9203; NemexCoin</span>
+        </td></tr>
+        <tr><td align="center" style="padding-bottom:24px;">
+          <span style="font-size:16px;color:#aab4c4;">Wallet Password Reset</span>
+        </td></tr>
+        <tr><td style="padding-bottom:12px;font-size:14px;color:#e6eaf0;line-height:1.6;">
+          Use the verification code below to reset your wallet password:
+        </td></tr>
+        <tr><td align="center" style="padding:18px 0 26px 0;">
+          <span style="display:inline-block;background:#1a2230;border:1px solid #d4af37;border-radius:8px;padding:14px 28px;font-size:30px;font-weight:bold;letter-spacing:6px;color:#d4af37;">${code}</span>
+        </td></tr>
+        <tr><td style="font-size:13px;color:#7a8699;line-height:1.6;">
+          This code expires in ${OTP_TTL_MINUTES} minutes. If you didn't request a password reset, you can safely ignore this email &mdash; your wallet is untouched.
+        </td></tr>
+        <tr><td style="padding-top:24px;border-top:1px solid #2a3344;font-size:12px;color:#5a6577;">
+          NemexCoin Security Team &middot; You received this because a password reset was requested for this address.
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
+// ── STEP 1: request a verification code (delivered by Brevo) ──────────
+router.post('/recover-password-otp', async (req, res) => {
+    try {
+        const email = normalizeRecoveryEmail(req.body && req.body.email);
+
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            return res.status(400).json({ success: false, error: 'Please enter a valid email address.' });
+        }
+        if (!isRecoveryEnvelopeEnabled()) {
+            return res.status(503).json({ success: false, error: 'Email recovery is not enabled on this server. Please use your 24-word recovery phrase.' });
+        }
+        if (!getBrevoConfig()) {
+            return res.status(503).json({ success: false, error: 'Email service is not configured. Please use your 24-word recovery phrase.' });
+        }
+        if (dbStatus !== 'connected' || !supabaseAdmin) {
+            return res.status(503).json({ success: false, error: 'Database not available' });
+        }
+
+        // Identical response whether or not the address is registered, so this
+        // endpoint cannot be used to discover which emails have an account.
+        const generic = { success: true, message: 'If that email is registered, a verification code is on its way.' };
+
+        const { data: profile } = await supabaseAdmin
+            .from('profiles')
+            .select('id')
+            .ilike('email', email)
+            .maybeSingle();
+
+        if (!profile || !profile.id) {
+            console.log('ℹ️ Reset requested for an unknown email - no code sent');
+            return res.json(generic);
+        }
+
+        const { data: wallet } = await supabaseAdmin
+            .from('user_wallets')
+            .select('id, password_recovery')
+            .eq('user_id', profile.id)
+            .maybeSingle();
+
+        if (!wallet) {
+            console.log('ℹ️ Reset requested for a profile without a wallet - no code sent');
+            return res.json(generic);
+        }
+
+        const code = generateOtpCode();
+        const { error: storeError } = await supabaseAdmin
+            .from('password_reset_codes')
+            .upsert({
+                email: email,
+                user_id: profile.id,
+                code_hash: hashOtpCode(email, code),
+                attempts: 0,
+                expires_at: new Date(Date.now() + (OTP_TTL_MINUTES * 60 * 1000)).toISOString(),
+                used: false,
+                created_at: new Date().toISOString()
+            }, { onConflict: 'email' });
+
+        if (storeError) {
+            console.error('❌ Could not store the reset code:', storeError.message);
+            return res.status(500).json({ success: false, error: 'Could not start the reset. Please try again.' });
+        }
+
+        try {
+            await sendBrevoEmail({
+                to: email,
+                subject: 'Your NemexCoin verification code',
+                html: buildOtpEmailHtml(code),
+                text: `Your NemexCoin verification code is ${code}. It expires in ${OTP_TTL_MINUTES} minutes.`
+            });
+            console.log('📧 Verification code emailed to', email);
+        } catch (mailError) {
+            const detail = mailError && mailError.response && mailError.response.data
+                ? (mailError.response.data.message || mailError.message)
+                : mailError.message;
+            console.error('❌ Brevo could not send the verification code:', detail);
+            // Do not leave a live code behind that the user will never receive
+            await supabaseAdmin.from('password_reset_codes').delete().eq('email', email);
+            return res.status(502).json({ success: false, error: 'Could not send the verification email. Please try again in a moment.' });
+        }
+
+        return res.json(generic);
+
+    } catch (error) {
+        console.error('❌ RESET OTP REQUEST ERROR:', error);
+        return res.status(500).json({ success: false, error: 'Failed to send the verification code: ' + error.message });
+    }
+});
+
+// ── STEP 2: exchange a correct code for a short-lived reset token ─────
+router.post('/recover-password-verify', async (req, res) => {
+    try {
+        const email = normalizeRecoveryEmail(req.body && req.body.email);
+        const code = String((req.body && req.body.code) || '').replace(/\D/g, '');
+
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            return res.status(400).json({ success: false, error: 'Invalid request.' });
+        }
+        if (code.length !== 6) {
+            return res.status(400).json({ success: false, error: 'Please enter the 6-digit code from your email.' });
+        }
+        if (!isRecoveryEnvelopeEnabled()) {
+            return res.status(503).json({ success: false, error: 'Email recovery is not enabled on this server.' });
+        }
+        if (dbStatus !== 'connected' || !supabaseAdmin) {
+            return res.status(503).json({ success: false, error: 'Database not available' });
+        }
+
+        const invalid = { success: false, error: 'That code is not valid or has expired. Please request a new one.' };
+
+        const { data: record } = await supabaseAdmin
+            .from('password_reset_codes')
+            .select('id, email, user_id, code_hash, attempts, expires_at, used')
+            .eq('email', email)
+            .maybeSingle();
+
+        if (!record || record.used) {
+            return res.status(400).json(invalid);
+        }
+        if (new Date(record.expires_at).getTime() < Date.now()) {
+            await supabaseAdmin.from('password_reset_codes').delete().eq('id', record.id);
+            return res.status(400).json(invalid);
+        }
+        if ((record.attempts || 0) >= OTP_MAX_ATTEMPTS) {
+            await supabaseAdmin.from('password_reset_codes').delete().eq('id', record.id);
+            return res.status(429).json({ success: false, error: 'Too many incorrect attempts. Please request a new code.' });
+        }
+
+        const givenHash = Buffer.from(hashOtpCode(email, code));
+        const storedHash = Buffer.from(String(record.code_hash));
+        const matches = givenHash.length === storedHash.length && crypto.timingSafeEqual(givenHash, storedHash);
+
+        if (!matches) {
+            await supabaseAdmin.from('password_reset_codes')
+                .update({ attempts: (record.attempts || 0) + 1 })
+                .eq('id', record.id);
+            console.warn('⚠️ Incorrect verification code for', email);
+            return res.status(400).json(invalid);
+        }
+
+        // The code is single use
+        await supabaseAdmin.from('password_reset_codes').delete().eq('id', record.id);
+
+        const resetToken = signPasswordResetToken(record.user_id, record.email);
+        if (!resetToken) {
+            return res.status(503).json({ success: false, error: 'Email recovery is not enabled on this server.' });
+        }
+
+        console.log('✅ Verification code accepted for', email);
+        return res.json({
+            success: true,
+            resetToken: resetToken,
+            expiresIn: RESET_TOKEN_TTL_MINUTES * 60
+        });
+
+    } catch (error) {
+        console.error('❌ RESET OTP VERIFY ERROR:', error);
+        return res.status(500).json({ success: false, error: 'Failed to verify the code: ' + error.message });
+    }
+});
+
 router.post('/recover-password-email', async (req, res) => {
     try {
-        const { accessToken, email, newPassword } = req.body;
+        const { accessToken, resetToken, email, newPassword } = req.body;
 
-        if (!accessToken || !newPassword) {
-            return res.status(400).json({ success: false, error: 'Missing required fields: accessToken, newPassword' });
+        if ((!accessToken && !resetToken) || !newPassword) {
+            return res.status(400).json({ success: false, error: 'Missing required fields: resetToken (or accessToken) and newPassword' });
         }
         if (typeof newPassword !== 'string' || newPassword.length < 6) {
             return res.status(400).json({ success: false, error: 'New password must be at least 6 characters' });
@@ -3222,7 +3527,15 @@ router.post('/recover-password-email', async (req, res) => {
         // ── 1. Verify the Supabase session produced by the OTP flow ──
         let verifiedUserId = null;
         let verifiedEmail = null;
-        if (supabaseAdmin) {
+        if (resetToken) {
+            // Proof that the email address was verified with the Brevo code
+            const verified = verifyPasswordResetToken(resetToken);
+            if (!verified) {
+                return res.status(401).json({ success: false, error: 'Email verification is invalid or expired. Please request a new code.' });
+            }
+            verifiedUserId = verified.sub;
+            verifiedEmail = verified.email || null;
+        } else if (supabaseAdmin) {
             const { data, error } = await supabaseAdmin.auth.getUser(accessToken);
             if (error || !data || !data.user) {
                 console.warn('❌ Supabase token verification failed:', error ? error.message : 'no user');

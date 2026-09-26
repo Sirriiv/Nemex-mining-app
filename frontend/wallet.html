@@ -6684,20 +6684,9 @@ async function changeWalletPassword() {
     }
 }
 
-// Forgot Password Recovery Functions (Email OTP via Supabase Auth)
+// Forgot Password Recovery Functions (code issued by our backend, emailed via Brevo)
 let recoveryOtpEmail = '';
-let recoverySupabaseClient = null;
-
-function getRecoverySupabaseClient() {
-    if (recoverySupabaseClient) return recoverySupabaseClient;
-    const supabaseUrl = window.APP_CONFIG?.supabaseUrl || '';
-    const supabaseKey = window.APP_CONFIG?.supabaseAnonKey || '';
-    if (!supabaseUrl || !supabaseKey || !window.supabase) {
-        throw new Error('Email service is not configured. Please try again later.');
-    }
-    recoverySupabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
-    return recoverySupabaseClient;
-}
+window.recoveryResetToken = null;
 
 function showRecoveryStep(stepId) {
     ['recoveryStepEmail', 'recoveryStepOtp', 'recoveryStepPassword', 'recoveryStepSeed', 'recoveryStepDone'].forEach(id => {
@@ -6757,7 +6746,7 @@ function closeForgotPasswordRecoveryModal() {
     recoveryOtpEmail = '';
 }
 
-// ── STEP 1: send the OTP email ──
+// ── STEP 1: ask the backend to email a verification code ──
 async function sendRecoveryOtp() {
     const emailInput = document.getElementById('recoveryEmailInput');
     const btn = document.getElementById('sendRecoveryOtpBtn');
@@ -6772,15 +6761,17 @@ async function sendRecoveryOtp() {
     btn.disabled = true;
     btn.textContent = 'Sending...';
     try {
-        const sb = getRecoverySupabaseClient();
-        const { error } = await sb.auth.signInWithOtp({
-            email: email,
-            options: { shouldCreateUser: false }
+        const response = await fetch('/api/wallet/recover-password-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email })
         });
-        if (error) {
-            throw new Error(error.message || 'Could not send the verification code.');
+        const result = await response.json().catch(function () { return {}; });
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || 'Could not send the verification code.');
         }
         recoveryOtpEmail = email;
+        window.recoveryResetToken = null;
         const hintEmail = document.getElementById('recoveryOtpEmail');
         if (hintEmail) hintEmail.textContent = email;
         showRecoveryStep('recoveryStepOtp');
@@ -6803,12 +6794,16 @@ async function resendRecoveryOtp() {
     const btn = document.getElementById('resendRecoveryOtpBtn');
     btn.disabled = true;
     try {
-        const sb = getRecoverySupabaseClient();
-        const { error } = await sb.auth.signInWithOtp({
-            email: recoveryOtpEmail,
-            options: { shouldCreateUser: false }
+        const response = await fetch('/api/wallet/recover-password-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: recoveryOtpEmail })
         });
-        if (error) throw new Error(error.message || 'Could not resend the code.');
+        const result = await response.json().catch(function () { return {}; });
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || 'Could not resend the code.');
+        }
+        window.recoveryResetToken = null;
         showToast('📧 Code resent to ' + recoveryOtpEmail, 'success');
     } catch (error) {
         showRecoveryError(error.message || 'Failed to resend the code.');
@@ -6819,11 +6814,12 @@ async function resendRecoveryOtp() {
 
 function backToRecoveryEmailStep() {
     recoveryOtpEmail = '';
+    window.recoveryResetToken = null;
     showRecoveryStep('recoveryStepEmail');
     showRecoveryError('');
 }
 
-// ── STEP 2: verify the OTP; on success Supabase returns a session token ──
+// ── STEP 2: verify the code; the backend returns a short-lived reset token ──
 async function verifyRecoveryOtp() {
     const otpInput = document.getElementById('recoveryOtpInput');
     const btn = document.getElementById('verifyRecoveryOtpBtn');
@@ -6842,16 +6838,16 @@ async function verifyRecoveryOtp() {
     btn.disabled = true;
     btn.textContent = 'Verifying...';
     try {
-        const sb = getRecoverySupabaseClient();
-        const { data, error } = await sb.auth.verifyOtp({
-            email: recoveryOtpEmail,
-            token: code,
-            type: 'email'
+        const response = await fetch('/api/wallet/recover-password-verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: recoveryOtpEmail, code: code })
         });
-        if (error || !data || !data.session) {
-            throw new Error(error ? error.message : 'Invalid or expired code. Please request a new one.');
+        const result = await response.json().catch(function () { return {}; });
+        if (!response.ok || !result.success || !result.resetToken) {
+            throw new Error(result.error || 'Invalid or expired code. Please request a new one.');
         }
-        window.recoverySupabaseAccessToken = data.session.access_token;
+        window.recoveryResetToken = result.resetToken;
         showRecoveryStep('recoveryStepPassword');
         showToast('✅ Email verified! Now set your new password.', 'success');
     } catch (error) {
@@ -6873,7 +6869,7 @@ async function resetWalletPasswordViaEmail() {
     showRecoveryError('');
     showRecoverySuccess('');
 
-    if (!window.recoverySupabaseAccessToken) {
+    if (!window.recoveryResetToken) {
         showRecoveryStep('recoveryStepOtp');
         showRecoveryError('Your verification expired. Please verify your email again.');
         return;
@@ -6894,7 +6890,7 @@ async function resetWalletPasswordViaEmail() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                accessToken: window.recoverySupabaseAccessToken,
+                resetToken: window.recoveryResetToken,
                 email: recoveryOtpEmail,
                 newPassword: newPassword
             })
@@ -6903,7 +6899,7 @@ async function resetWalletPasswordViaEmail() {
         if (!result.success) {
             throw new Error(result.error || 'Failed to reset password');
         }
-        window.recoverySupabaseAccessToken = null;
+        window.recoveryResetToken = null;
         showRecoveryStep('recoveryStepDone');
         showToast('✅ Password reset! Please log in with your new password.', 'success');
         setTimeout(() => {

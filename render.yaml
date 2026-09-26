@@ -30,7 +30,16 @@ services:
       # Generate with: openssl rand -base64 48  (min 32 chars)
       - key: APP_ENCRYPTION_KEY
         sync: false
-      # Optional: security notification email on password reset (Resend)
+      # Email delivery via Brevo (password reset OTP + change notification).
+      # BREVO_API_KEY: Brevo -> Settings -> SMTP & API -> API tab -> "Generate a new API key"
+      # BREVO_FROM_EMAIL: an address on a sender/domain verified inside Brevo
+      - key: BREVO_API_KEY
+        sync: false
+      - key: BREVO_FROM_EMAIL
+        sync: false
+      - key: BREVO_FROM_NAME
+        sync: false
+      # Optional legacy fallback: security notification email via Resend
       - key: RESEND_API_KEY
         sync: false
       - key: RESEND_FROM_EMAIL
